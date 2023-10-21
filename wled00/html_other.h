@@ -40,11 +40,11 @@ const char PAGE_update[] PROGMEM = R"=====(<!DOCTYPE html><html><head><meta cont
 <title>Hypnotik Update</title><script>
 function B(){window.history.back()}function U(){document.getElementById("uf").style.display="none",document.getElementById("msg").style.display="block"}
 </script><style>
-.bt{background:#333;color:#fff;font-family:sans-serif;border:.3ch solid #333;display:inline-block;font-size:20px;margin:8px;margin-top:12px}input[type=file]{box-sizing:border-box;border:none;background-color:transparent;border:1px solid #909090;color:var(--c-f);font-weight:400;font-size:20px;margin:5px}body{font-family:sans-serif;text-align:center;background:#000;color:#fff;line-height:200%;display:flex;align-items:center;justify-content:center;height:100vh}#msg{display:none}.bt{outline:0;cursor:pointer;padding:10px;margin:5px;text-transform:uppercase;font-size:15px;font-style:normal;font-weight:550;line-height:normal;border:1px solid var(--black-500,#909090);background:var(--white,#fff);color:var(--black-900,#000);border-radius:25px}
+input[type=file]{box-sizing:border-box;border:none;background-color:transparent;border:1px solid #909090;color:var(--c-f);font-weight:400;font-size:20px;margin:5px}body{font-family:sans-serif;text-align:center;background:#000;color:#fff;line-height:200%;display:flex;align-items:center;justify-content:center;height:100vh}#msg{display:none}.bt{outline:0;cursor:pointer;padding:10px;margin:5px;text-transform:uppercase;font-size:15px;font-style:normal;font-weight:550;line-height:normal;border:1px solid var(--black-500,#909090);background:var(--white,#000);color:var(--black-900,#fff);border-radius:25px}.bt:hover{background:var(--white,#fff);color:var(--black-900,#000);border-radius:25px}
 </style></head><body><div><img alt="" class="hyp-logo" src="/hyplogo"><h2>
 Sound Reactive Hypnotik Software Update</h2><form method="POST" 
 action="/update" id="uf" enctype="multipart/form-data" onsubmit="U()">
-Installed version: Hypnotik SR 1.0.0<br><input type="file" name="update" 
+Installed version: Hypnotik SR 0.13.3<br><input type="file" name="update" 
 required><br><input type="submit" class="bt" value="Update!"><br><button 
 type="button" class="bt" onclick="B()">Back</button></form><div id="msg"><b>
 Updating...</b><br>Please do not close or refresh the page :)</div></div></body>
@@ -55,7 +55,7 @@ Updating...</b><br>Please do not close or refresh the page :)</div></div></body>
 const char PAGE_welcome[] PROGMEM = R"=====(<!DOCTYPE html><html><head><meta charset="utf-8"><meta 
 content="width=device-width" name="viewport"><meta name="theme-color" 
 content="#222222"><title>Welcome!</title><style>
-*{margin:0;padding:0}body{color:#fff;font-family:sans-serif;font-style:normal;font-weight:400;line-height:normal;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background-color:#000;height:97vh;text-align:center}.cancel-button{width:35vw;max-width:260px;display:flex;align-items:center;justify-content:center;border-radius:29px;border:1px solid #909090;background:0 0;color:#fff;font-family:sans-serif;font-size:20px;font-style:normal;font-weight:600;line-height:normal;padding:20px 10px}.cancel-button-white{width:35vw;max-width:260px;display:flex;align-items:center;justify-content:center;border-radius:29px;border:1px solid #909090;background:#fff;color:#000;font-family:sans-serif;font-size:20px;font-style:normal;font-weight:600;line-height:normal;padding:20px 10px}.cancel-button:hover,.segment-power-button:hover{color:#efe9e9}p{font-size:20px;margin:0 0}img{width:950px;max-width:82%;image-rendering:pixelated;image-rendering:crisp-edges;margin:4vh 0 0 0;animation:fi 1s}@keyframes fi{from{opacity:0}to{opacity:1}}.main{animation:fi 1.5s .7s both}.hyp-logo{max-width:590px}.leds{max-width:339px;max-height:98px}@media all and (max-width:685px){body{padding:0 2vw}.hyp-logo{width:100%}.cancel-button,.cancel-button-white{width:50vw;font-size:15px}.leds{max-width:165px;max-height:50px}p{font-size:14px}}
+*{margin:0;padding:0}body{color:#fff;font-family:sans-serif;font-style:normal;font-weight:400;line-height:normal;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background-color:#000;height:97vh;text-align:center}.cancel-button{width:35vw;max-width:260px;display:flex;align-items:center;justify-content:center;border-radius:29px;border:1px solid #909090;background:0 0;color:#fff;font-family:sans-serif;font-size:20px;font-style:normal;font-weight:600;line-height:normal;padding:20px 10px}.cancel-button:hover,.segment-power-button:hover{color:#000;background:#fff}p{font-size:20px;margin:0 0}img{width:950px;max-width:82%;image-rendering:pixelated;image-rendering:crisp-edges;margin:4vh 0 0 0;animation:fi 1s}@keyframes fi{from{opacity:0}to{opacity:1}}.main{animation:fi 1.5s .7s both}.hyp-logo{max-width:590px}.leds{max-width:339px;max-height:98px}@media all and (max-width:685px){body{padding:0 2vw}.hyp-logo{width:100%}.cancel-button,.cancel-button-white{width:50vw;font-size:15px}.leds{max-width:165px;max-height:50px}p{font-size:14px}}
 </style><link rel="stylesheet" href="style.css"></head><body><div><div 
 style="box-sizing:border-box;width:100%;height:30vh;display:flex;align-items:center;justify-content:center">
 <img alt="" class="leds" 
@@ -66,7 +66,7 @@ style="font-size:calc(min(4vw,40px));margin:0">
 Individually Addressable LED Strip Controller</p></div></div><div class="main" 
 style="display:flex;justify-content:center;flex-direction:column;align-items:center;margin-bottom:30px;gap:5px">
 <p>Connect contoller to WiFi</p><button 
-onclick='window.location.href="/settings/wifi"' class="cancel-button-white">
+onclick='window.location.href="/settings/wifi"' class="cancel-button">
 WiFi settings</button><p>AP mode</p><button 
 onclick='window.location.href="/sliders"' class="cancel-button">
 LED Strip Controls</button></div></body></html>)=====";
@@ -110,7 +110,7 @@ var ws,c=document.getElementById("liveviewCanvas"),ctx=null,pPL=0,lOf=0,mW=0,mH=
 const char PAGE_404[] PROGMEM = R"=====(<!DOCTYPE html><html><head><meta charset="utf-8"><meta 
 content="width=device-width" name="viewport"><meta name="theme-color" 
 content="#222222"><title>Not found</title><style>
-body{font-family:sans-serif;text-align:center;background-color:#000;margin:0;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh}img{width:400px;image-rendering:pixelated;image-rendering:crisp-edges;margin:25px 0 -10px 0}button{outline:0;cursor:pointer;padding:10px 0;margin:10px;width:230px;text-transform:uppercase;font-size:20px;font-style:normal;font-weight:550;line-height:normal;border:1px solid var(--black-500,#909090);background:var(--white,#fff);color:var(--black-900,#000);border-radius:25px}
+body{font-family:sans-serif;text-align:center;background-color:#000;margin:0;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh}img{width:400px;image-rendering:pixelated;image-rendering:crisp-edges;margin:25px 0 -10px 0}button{outline:0;cursor:pointer;padding:10px 0;margin:10px;width:230px;text-transform:uppercase;font-size:20px;font-style:normal;font-weight:550;line-height:normal;border:1px solid var(--black-500,#909090);background:var(--white,#000);color:var(--black-900,#fff);border-radius:25px}button:hover{background:var(--white,#fff);color:var(--black-900,#000);transition:.5s}
 </style></head><body><div><img alt="" src="hyplogo"><div class="filler" 
 style="height:20px"></div><h1>404 Not Found</h1><b>
 Akemi does not know where you are headed...</b><br><br><button 

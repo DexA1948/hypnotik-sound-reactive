@@ -226,14 +226,14 @@ writeChunks(
       append: ")=====",
       method: "plaintext",
       filter: "html-minify",
-      mangle: (str) =>
-        str
-          .replace(/\<link rel="stylesheet".*\>/gms, "")
-          .replace(/\<style\>.*\<\/style\>/gms, "%CSS%%SCSS%")
-          .replace(
-            /function GetV().*\<\/script\>/gms,
-            "function GetV() {var d=document;\n"
-          ),
+      // mangle: (str) =>
+      //   str
+      //     .replace(/\<link rel="stylesheet".*\>/gms, "")
+      //     .replace(/\<style\>.*\<\/style\>/gms, "%CSS%%SCSS%")
+      //     .replace(
+      //       /function GetV().*\<\/script\>/gms,
+      //       "function GetV() {var d=document;\n"
+      //     ),
     },
     {
       file: "settings_leds.htm",
@@ -455,7 +455,7 @@ const char PAGE_dmxmap[] PROGMEM = R"=====()=====";
       filter: "html-minify",
     },
     {
-      file: "favicon.ico",
+      file: "favicon.png",
       name: "favicon",
       method: "binary",
     },
