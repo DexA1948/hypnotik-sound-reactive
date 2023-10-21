@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=500">
+	<title>WiFi Settings</title>
+	<script>
+		var d = document;
+		var loc = false, locip, locproto = "http:";
+		var scanLoops = 0, preScanSSID = "";
+
+		function gId(e) { return d.getElementById(e); }
+		function cE(e) { return d.createElement(e); }
+		function H() { window.open("https://kno.wled.ge/features/settings/#wifi-settings"); }
+		function B() { window.open(getURL("/settings"), "_self"); }
+		function N() {
+			const button = gId("scan");
+			button.disabled = true;
+			button.textContent = "Scanning...";
+
+			fetch(getURL("/json/net")).then((response) => {
+				return response.json();
+			}).then((json) => {
+				// Get the list of networks only, defaulting to an empty array.
+				return Object.assign(
+					{},
+					{ "networks": [] },
+					json,
+				).networks.sort(
+					// Sort by signal strength, descending.
+					(a, b) => b.rssi - a.rssi
+				).reduce(
+					// Filter out duplicate SSIDs. Since it is sorted by signal
+					// strength, the strongest signal will be kept in the
+					// order it orginally appeared in the array.
+					(unique, other) => {
+						if (!unique.some(obj => obj.ssid === other.ssid)) {
+							unique.push(other);
+						}
+						return unique;
+					},
+					[],
+				);
+			}).then((networks) => {
+				// If there are no networks, fetch it again in a second.
+				// but only do this a few times.
+				if (networks.length === 0 && scanLoops < 10) {
+					scanLoops++;
+					setTimeout(N, 1000);
+					return;
+				}
+				scanLoops = 0;
+
+				let cs = gId("CS");
+				if (cs) {
+					let select = cE("select");
+					select.setAttribute("id", "CS");
+					select.setAttribute("name", "CS");
+					select.setAttribute("onchange", "T()");
+					preScanSSID = cs.value;
+
+					for (let i = 0; i < select.children.length; i++) {
+						select.removeChild(select.children[i]);
+					}
+
+					for (let i = 0; i < networks.length; i++) {
+						const option = cE("option");
+
+						option.setAttribute("value", networks[i].ssid);
+						option.textContent = `${networks[i].ssid} (${networks[i].rssi} dBm)`;
+
+						if (networks[i].ssid === cs.value) {
+							option.setAttribute("selected", "selected");
+						}
+
+						select.appendChild(option);
+					}
+					const option = cE("option");
+
+					option.setAttribute("value", "!Cs");
+					option.textContent = `Other network...`;
+					select.appendChild(option);
+
+					cs.replaceWith(select);
+				}
+
+				button.disabled = false;
+				button.textContent = "Scan";
+			});
+		}
+		// replace WiFi select with custom SSID input field again
+		function T() {
+			let cs = gId("CS");
+			if (!cs || cs.value != "!Cs") return;
+			let input = cE("input");
+			input.type = "text";
+			input.id = "CS";
+			input.name = "CS";
+			input.setAttribute("maxlength", 32);
+			input.value = preScanSSID;
+			cs.replaceWith(input);
+		}
+		// https://www.educative.io/edpresso/how-to-dynamically-load-a-js-file-in-javascript
+		function loadJS(FILE_URL, async = true) {
+			let scE = cE("script");
+			scE.setAttribute("src", FILE_URL);
+			scE.setAttribute("type", "text/javascript");
+			scE.setAttribute("async", async);
+			d.body.appendChild(scE);
+			// success event
+			scE.addEventListener("load", () => {
+				//console.log("File loaded");
+				GetV();
+			});
+			// error event
+			scE.addEventListener("error", (ev) => {
+				console.log("Error on loading file", ev);
+				alert("Loading of configuration script failed.\nIncomplete page data!");
+			});
+		}
+		function S() {
+			let l = window.location;
+			if (l.protocol == "file:") {
+				loc = true;
+				locip = localStorage.getItem('locIp');
+				if (!locip) {
+					locip = prompt("File Mode. Please enter WLED IP!");
+					localStorage.setItem('locIp', locip);
+				}
+			} else {
+				// detect reverse proxy
+				let path = l.pathname;
+				let paths = path.slice(1, path.endsWith('/') ? -1 : undefined).split("/");
+				if (paths.length > 2) {
+					locproto = l.protocol;
+					loc = true;
+					locip = l.hostname + (l.port ? ":" + l.port : "") + "/" + paths[0];
+				}
+			}
+			loadJS(getURL('/settings/s.js?p=1'), false);	// If we set async false, file is loaded and executed, then next statement is processed
+			if (loc) d.Sf.action = getURL('/settings/wifi');
+		}
+		function getURL(path) {
+			return (loc ? locproto + "//" + locip : "") + path;
+		}
+	</script>
+	<style>
+		body {
+			background: #000;
+			color: #fff;
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+			align-items: center;
+			/* justify-content: center; */
+			font-family: sans-serif;
+		}
+
+		:root {
+			--c-1: #000;
+			--c-f: #fff;
+			--c-2: #2C2C2C;
+			--c-3: #333;
+			--c-4: #444;
+			--c-5: #555;
+			--c-6: #666;
+			--c-8: #909090;
+			--c-b: #bbb;
+			--c-c: #ccc;
+			--c-e: #eee;
+			--c-d: #ddd;
+			--c-r: #831;
+			--t-b: 0.5;
+			--c-o: rgba(34, 34, 34, 0.9);
+			--c-tb: rgba(34, 34, 34, var(--t-b));
+			--c-tba: rgba(102, 102, 102, var(--t-b));
+			--c-tbh: rgba(51, 51, 51, var(--t-b));
+			/*following are internal*/
+			--th: 70px;
+			--tp: 70px;
+			--bh: 63px;
+			--tbp: 14px 14px 10px 14px;
+			--bbp: 9px 0 7px 0;
+			--bhd: none;
+			--bmt: 0px;
+		}
+
+		select#CS {
+			box-sizing: border-box;
+			width: 100%;
+			margin: 10px auto;
+			padding: 10px;
+			background: var(--c-1);
+			color: var(--c-f);
+			border-radius: 14px;
+			border: 1px solid var(--c-8);
+		}
+
+		option {
+			width: 100px;
+			background-color: var(--c-1);
+			color: var(--c-f);
+		}
+
+		.contain-middle {
+			display: flex;
+			width: 340px;
+			margin: auto;
+			padding: 0px 10px;
+			flex-direction: column;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			flex-shrink: 0;
+		}
+
+		.scan-button {
+			display: flex;
+			width: 140px;
+			padding: 15px 10px;
+			justify-content: center;
+			align-items: center;
+			gap: 10px;
+			background: none;
+
+			border-radius: 29px;
+			border: 1px solid var(--white, #FFF);
+
+			color: var(--white, #FFF);
+			text-align: center;
+			/* font-family: Barlow Condensed; */
+			font-size: 24px;
+			font-style: normal;
+			font-weight: 500;
+			line-height: normal;
+		}
+
+		.save-connect-button {
+			display: flex;
+			padding: 15px 10px;
+			justify-content: center;
+			align-items: center;
+			gap: 10px;
+
+			border-radius: 29px;
+			background: #FFF;
+			box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.25);
+
+			color: #000;
+			text-align: center;
+			/* font-family: Barlow Condensed; */
+			font-size: 24px;
+			font-style: normal;
+			font-weight: 500;
+			line-height: normal;
+		}
+
+		.scan-button:hover {
+			background: #9a94946c;
+		}
+
+		.section-heading {
+			color: #4b9dc9;
+			text-align: left;
+			font-weight: 500;
+			font-size: 30px;
+			/* font: 500 30px "Barlow Condensed", sans-serif; */
+			margin: 0 0 20px 0;
+		}
+
+		.input-label {
+			color: var(--c-8);
+			/* font-family: Barlow Condensed; */
+			font-size: 16px;
+			font-style: normal;
+			font-weight: 400;
+			line-height: normal;
+			margin-bottom: 5px;
+		}
+
+		input {
+			box-sizing: border-box;
+			border: none;
+			background-color: transparent;
+			border-bottom: 1px solid var(--c-8);
+			width: 100%;
+
+			color: var(--c-f);
+			font-weight: 400;
+			font-size: 20px;
+			/* font: 400 20px "Barlow Condensed", sans-serif; */
+			padding: 5px;
+		}
+
+		input[type="number"] {
+			text-align: center;
+		}
+
+		input:focus {
+			outline: none;
+		}
+
+		/* Hide the up and down arrows (spinner) in Chrome, Safari, Edge, and Firefox */
+		input[type="number"]::-webkit-inner-spin-button,
+		input[type="number"]::-webkit-outer-spin-button {
+			-webkit-appearance: none;
+			margin: 0;
+		}
+
+		input[type="number"] {
+			-moz-appearance: textfield;
+			/* For Firefox */
+		}
+
+		table tr td {
+			padding: 0 10px;
+		}
+
+		table tr td:first-child {
+			padding-left: 0;
+		}
+
+		table tr td:last-child {
+			padding-right: 0;
+		}
+
+		#toast {
+			opacity: 0;
+			background-color: #444;
+			border-radius: 5px;
+			bottom: 64px;
+			color: #fff;
+			font-size: 17px;
+			padding: 16px;
+			pointer-events: none;
+			position: fixed;
+			text-align: center;
+			z-index: 5;
+			transform: translateX(-50%);
+			/* % because of AsyncWebServer */
+			max-width: 90%;
+			/* % because of AsyncWebServer */
+			left: 50%;
+			/* % because of AsyncWebServer */
+		}
+
+		#toast.show {
+			opacity: 1;
+			background-color: #264;
+			animation: fadein 0.5s, fadein 0.5s 2.5s reverse;
+		}
+
+		#toast.error {
+			opacity: 1;
+			background-color: #b21;
+			animation: fadein 0.5s;
+		}
+
+		.hyp-logo {
+			width: 340px;
+		}
+	</style>
+</head>
+
+<body onload="S()" id="wifi_settings">
+
+	<div class="hypnotik-mobile-top"
+		style="margin-bottom: 40px;align-items: center;display: flex;justify-content: center;">
+		<button onclick="B()"
+			style="position: absolute;top: 50px;left: 20px;background: none;outline: none;border: none;">
+			<svg xmlns="http://www.w3.org/2000/svg" width="31" height="20" viewBox="0 0 31 20" fill="none">
+				<path fill-rule="evenodd" clip-rule="evenodd"
+					d="M13.186 1.08175C13.6932 1.73681 13.5732 2.67896 12.9182 3.1861L4.4014 9.77974L12.9551 16.8434C13.5938 17.3709 13.684 18.3164 13.1565 18.9551C12.629 19.5939 11.6836 19.6841 11.0448 19.1566L1.0448 10.8985C0.693358 10.6083 0.492939 10.1741 0.500111 9.71834C0.507283 9.26262 0.72127 8.83487 1.08167 8.55586L11.0817 0.813924C11.7367 0.306784 12.6789 0.426693 13.186 1.08175Z"
+					fill="white" />
+				<path fill-rule="evenodd" clip-rule="evenodd"
+					d="M1.5 10C1.5 9.17157 2.17157 8.5 3 8.5H29C29.8284 8.5 30.5 9.17157 30.5 10C30.5 10.8284 29.8284 11.5 29 11.5H3C2.17157 11.5 1.5 10.8284 1.5 10Z"
+					fill="white" />
+			</svg>
+		</button>
+
+		<img alt="" class="hyp-logo" src="/hyplogo">
+	</div>
+
+	<div class="contain-middle">
+		<form id="form_s" name="Sf" method="post">
+
+			<p class="section-heading">WiFi setup</h2>
+			<p style="font-size: 26px;font-weight: 400;">Connect to existing network</p>
+			<div style="display: flex;justify-content: center;">
+				<button class="scan-button" type="button" id="scan" onclick="N()">Scan</button>
+			</div>
+			<p class="input-label">Network name</p>
+			<input name="CS" maxlength="32" placeholder="Type" type="text" id="CS">
+			<p class="input-label" style="margin-top: 2px;">&nbsp;&nbsp;SSID. Leave empty to remove connection</p>
+
+			<p class="input-label">Network Password</p>
+			<input type="password" name="CP" maxlength="63" placeholder="Type">
+
+			<p class="input-label">Static IP</p>
+			<table>
+				<tr>
+					<td><input name="I0" type="number" class="s" min="0" max="255" required value="0"></td>
+					<td><input name="I1" type="number" class="s" min="0" max="255" required value="0"></td>
+					<td><input name="I2" type="number" class="s" min="0" max="255" required value="0"></td>
+					<td><input name="I3" type="number" class="s" min="0" max="255" required value="0"></td>
+				</tr>
+			</table>
+			<p class="input-label" style="text-align: right;margin-top: 2px;">Leave 0.0.0.0 for DHCP</p>
+
+			<p class="input-label">Static Gateway</p>
+			<table>
+				<tr>
+					<td><input name="G0" type="number" class="s" min="0" max="255"></td>
+					<td><input name="G1" type="number" class="s" min="0" max="255"></td>
+					<td><input name="G2" type="number" class="s" min="0" max="255"></td>
+					<td><input name="G3" type="number" class="s" min="0" max="255"></td>
+				</tr>
+			</table>
+
+			<p class="input-label">Static Subnet Mask</p>
+			<table>
+				<tr>
+					<td><input name="S0" type="number" class="s" min="0" max="255"></td>
+					<td><input name="S1" type="number" class="s" min="0" max="255"></td>
+					<td><input name="S2" type="number" class="s" min="0" max="255"></td>
+					<td><input name="S3" type="number" class="s" min="0" max="255"></td>
+				</tr>
+			</table>
+
+			<p class="input-label">mDNS Address</p>
+			<table>
+				<tr>
+					<td>
+						<p style="font-size: 20px;font-weight: 400;">http://</p>
+					</td>
+					<td><input name="CM" maxlength="32" value="hypnotik-"></td>
+					<td>
+						<p style="font-size: 20px;font-weight: 400;">.local</p>
+					</td>
+				</tr>
+			</table>
+
+			<div style="display: flex;justify-content: center;margin-top: 40px;">
+				<button type="submit" class="save-connect-button">Save & Connect</button>
+			</div>
+
+		</form>
+	</div>
+</body>
+
+</html>

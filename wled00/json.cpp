@@ -3,7 +3,7 @@
 #include "palettes.h"
 
 #include <Esp.h>
-
+#define JSON_PATH_NETWORKS   7
 /*
  * JSON API (De)serialization
  */
@@ -757,7 +757,7 @@ void serializeInfo(JsonObject root)
   #endif
   root[F("opt")] = os;
 
-  root[F("brand")] = "WLED";
+  root[F("brand")] = "HYPNOTIK";
   root[F("product")] = F("FOSS");
   root["mac"] = escapedMac;
   char s[16] = "";
@@ -912,7 +912,34 @@ void serializePalettes(JsonObject root, AsyncWebServerRequest* request)
     }
   }
 }
+void serializeNetworks(JsonObject root)
+{
+  JsonArray networks = root.createNestedArray(F("networks"));
+  int16_t status = WiFi.scanComplete();
 
+  switch (status) {
+    case WIFI_SCAN_FAILED:
+      WiFi.scanNetworks(true);
+      return;
+    case WIFI_SCAN_RUNNING:
+      return;
+  }
+
+  for (int i = 0; i < status; i++) {
+    JsonObject node = networks.createNestedObject();
+    node["ssid"]    = WiFi.SSID(i);
+    node["rssi"]    = WiFi.RSSI(i);
+    node["bssid"]   = WiFi.BSSIDstr(i);
+    node["channel"] = WiFi.channel(i);
+    node["enc"]     = WiFi.encryptionType(i);
+  }
+
+  WiFi.scanDelete();
+
+  if (WiFi.scanComplete() == WIFI_SCAN_FAILED) {
+    WiFi.scanNetworks(true);
+  }
+}
 void serializeNodes(JsonObject root)
 {
   JsonArray nodes = root.createNestedArray("nodes");
@@ -940,6 +967,7 @@ void serveJson(AsyncWebServerRequest* request)
   else if (url.indexOf("si")    > 0) subJson = 3;
   else if (url.indexOf("nodes") > 0) subJson = 4;
   else if (url.indexOf("palx")  > 0) subJson = 5;
+  else if (url.indexOf("net")   > 0) subJson = JSON_PATH_NETWORKS;
   #ifdef WLED_ENABLE_JSONLIVE
   else if (url.indexOf("live")  > 0) {
     serveLiveLeds(request);
@@ -981,6 +1009,8 @@ void serveJson(AsyncWebServerRequest* request)
       serializeNodes(lDoc); break;
     case 5: //palettes
       serializePalettes(lDoc, request); break;
+    case JSON_PATH_NETWORKS:
+      serializeNetworks(lDoc); break;
     default: //all
       JsonObject state = lDoc.createNestedObject("state");
       serializeState(state);

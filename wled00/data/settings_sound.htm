@@ -32,8 +32,10 @@
 </head>
 <body onload="S()">
 	<form id="form_s" name="Sf" method="post">
-		<div class="helpB"><button type="button" onclick="H()">?</button></div>
-		<button type="button" onclick="B()">Back</button><button type="submit">Save</button><hr>
+		<div class="topsettingsmenu">
+            <div class="helpB"><button type="button" onclick="H()">?</button></div>
+            <button type="button" onclick="B()">Back</button><button type="submit">Save</button>
+        </div>
 		<h2>Sound Input Settings</h2>
 		<p>
 		Squelch: <input name="SQ" type="number" min="0" max="255" required><br>
@@ -67,7 +69,11 @@
 		<div id="am">
 			Analog Input pin: <input type="number" min="-1" max="40" name="SI"><br>
 		</div>
-		<button type="button" onclick="B()">Back</button><button type="submit">Save</button>
+		
+		<div style="margin-top: 50px;height: 1px;"></div>
+		<div class="bottomsettingsmenu">
+            <button type="button" onclick="B()">Back</button><button type="submit">Save</button>
+        </div>
 	</form>
 </body>
 </html>

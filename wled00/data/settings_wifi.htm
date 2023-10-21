@@ -1,83 +1,461 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
+	<meta charset="utf-8">
 	<meta name="viewport" content="width=500">
 	<title>WiFi Settings</title>
 	<script>
-		function H()
-		{
-			window.open("https://github.com/Aircoookie/WLED/wiki/Settings#wifi-settings");
+		var d = document;
+		var loc = false, locip, locproto = "http:";
+		var scanLoops = 0, preScanSSID = "";
+
+		function gId(e) { return d.getElementById(e); }
+		function cE(e) { return d.createElement(e); }
+		function H() { window.open("https://kno.wled.ge/features/settings/#wifi-settings"); }
+		function B() { window.open(getURL("/settings"), "_self"); }
+		function N() {
+			const button = gId("scan");
+			button.disabled = true;
+			button.textContent = "Scanning...";
+			button.style.background = "#fff";
+			button.style.color = "#000";
+
+			fetch(getURL("/json/net")).then((response) => {
+				return response.json();
+			}).then((json) => {
+				// Get the list of networks only, defaulting to an empty array.
+				return Object.assign(
+					{},
+					{ "networks": [] },
+					json,
+				).networks.sort(
+					// Sort by signal strength, descending.
+					(a, b) => b.rssi - a.rssi
+				).reduce(
+					// Filter out duplicate SSIDs. Since it is sorted by signal
+					// strength, the strongest signal will be kept in the
+					// order it orginally appeared in the array.
+					(unique, other) => {
+						if (!unique.some(obj => obj.ssid === other.ssid)) {
+							unique.push(other);
+						}
+						return unique;
+					},
+					[],
+				);
+			}).then((networks) => {
+				// If there are no networks, fetch it again in a second.
+				// but only do this a few times.
+				if (networks.length === 0 && scanLoops < 10) {
+					scanLoops++;
+					setTimeout(N, 1000);
+					return;
+				}
+				scanLoops = 0;
+
+				let cs = gId("CS");
+				if (cs) {
+					let select = cE("select");
+					select.setAttribute("id", "CS");
+					select.setAttribute("name", "CS");
+					select.setAttribute("onchange", "T()");
+					preScanSSID = cs.value;
+
+					for (let i = 0; i < select.children.length; i++) {
+						select.removeChild(select.children[i]);
+					}
+
+					for (let i = 0; i < networks.length; i++) {
+						const option = cE("option");
+
+						option.setAttribute("value", networks[i].ssid);
+						option.textContent = `${networks[i].ssid} (${networks[i].rssi} dBm)`;
+
+						if (networks[i].ssid === cs.value) {
+							option.setAttribute("selected", "selected");
+						}
+
+						select.appendChild(option);
+					}
+					const option = cE("option");
+
+					option.setAttribute("value", "!Cs");
+					option.textContent = `Other network...`;
+					select.appendChild(option);
+
+					cs.replaceWith(select);
+				}
+
+				button.disabled = false;
+				button.textContent = "Scan";
+				button.style.background = "#000";
+				button.style.color = "#fff";
+			});
 		}
-		function B()
-		{
-			window.open("/settings","_self");
+		// replace WiFi select with custom SSID input field again
+		function T() {
+			let cs = gId("CS");
+			if (!cs || cs.value != "!Cs") return;
+			let input = cE("input");
+			input.type = "text";
+			input.id = "CS";
+			input.name = "CS";
+			input.setAttribute("maxlength", 32);
+			input.value = preScanSSID;
+			cs.replaceWith(input);
 		}
-		function GetV()
-		{
-			//values injected by server while sending HTML
+		// https://www.educative.io/edpresso/how-to-dynamically-load-a-js-file-in-javascript
+		function loadJS(FILE_URL, async = true) {
+			let scE = cE("script");
+			scE.setAttribute("src", FILE_URL);
+			scE.setAttribute("type", "text/javascript");
+			scE.setAttribute("async", async);
+			d.body.appendChild(scE);
+			// success event
+			scE.addEventListener("load", () => {
+				//console.log("File loaded");
+				GetV();
+			});
+			// error event
+			scE.addEventListener("error", (ev) => {
+				console.log("Error on loading file", ev);
+				alert("Loading of configuration script failed.\nIncomplete page data!");
+			});
+		}
+		function S() {
+			let l = window.location;
+			if (l.protocol == "file:") {
+				loc = true;
+				locip = localStorage.getItem('locIp');
+				if (!locip) {
+					locip = prompt("File Mode. Please enter WLED IP!");
+					localStorage.setItem('locIp', locip);
+				}
+			} else {
+				// detect reverse proxy
+				let path = l.pathname;
+				let paths = path.slice(1, path.endsWith('/') ? -1 : undefined).split("/");
+				if (paths.length > 2) {
+					locproto = l.protocol;
+					loc = true;
+					locip = l.hostname + (l.port ? ":" + l.port : "") + "/" + paths[0];
+				}
+			}
+			loadJS(getURL('/settings/s.js?p=1'), false);	// If we set async false, file is loaded and executed, then next statement is processed
+			if (loc) d.Sf.action = getURL('/settings/wifi');
+		}
+		function getURL(path) {
+			return (loc ? locproto + "//" + locip : "") + path;
 		}
 	</script>
 	<style>
-		@import url("style.css");
+		:root {
+			--c-1: #000;
+			--c-f: #fff;
+			--c-2: #050404;
+			--c-3: #333;
+			--c-4: #444;
+			--c-5: #555;
+			--c-6: #666;
+			--c-8: #909090;
+			--c-b: #bbb;
+			--c-c: #ccc;
+			--c-e: #eee;
+			--c-d: #ddd;
+			--c-r: #831;
+			--t-b: 0.5;
+			--c-o: rgba(34, 34, 34, 0.9);
+			--c-tb: rgba(34, 34, 34, var(--t-b));
+			--c-tba: rgba(102, 102, 102, var(--t-b));
+			--c-tbh: rgba(51, 51, 51, var(--t-b));
+			/*following are internal*/
+			--th: 70px;
+			--tp: 70px;
+			--bh: 63px;
+			--tbp: 14px 14px 10px 14px;
+			--bbp: 9px 0 7px 0;
+			--bhd: none;
+			--bmt: 0px;
+		}
+
+		body {
+			font-family: sans-serif;
+			text-align: center;
+			background: #000;
+			color: #fff;
+			line-height: 200%;
+			/* % because of AsyncWebServer */
+			margin: 10px 0 10px 0;
+			overflow-x: hidden;
+		}
+
+		::-webkit-scrollbar {
+			display: none;
+		}
+
+		hr {
+			margin: 10px auto;
+		}
+
+		a {
+			color: #28f;
+			text-decoration: none;
+		}
+
+		input[type="button"][value="Upload"],
+		input[type="button"][value="Apply"],
+		button,
+		.btn {
+			outline: none;
+			cursor: pointer;
+			padding: 5px 10px;
+			margin: 10px;
+			text-transform: uppercase;
+			font-size: 15px;
+			font-style: normal;
+			font-weight: 550;
+			line-height: normal;
+			border: 1px solid var(--black-500, #909090);
+			background: var(--white, #000);
+			color: var(--black-900, #fff);
+			border-radius: 25px;
+		}
+
+
+		input[type="button"][value="Upload"]:hover,
+		input[type="button"][value="Apply"]:hover,
+		button:hover,
+		.btn:hover {
+			background: var(--white, #fff);
+			color: var(--black-900, #000);
+		}
+
+		.lnk {
+			border: 0;
+		}
+
+		button.disabled,
+		button[disabled] {
+			color: #aaa;
+		}
+
+		.helpB {
+			text-align: left;
+			position: absolute;
+			left: 10px;
+			width: 60px;
+		}
+
+		.helpB button {
+			width: 40px;
+		}
+
+		.topsettingsmenu {
+			position: sticky;
+			width: 100vw;
+			top: 0;
+			background-color: #000;
+			border-bottom: 2px solid #fff;
+			margin-top: -1px;
+			z-index: 100;
+		}
+
+		.bottomsettingsmenu {
+			position: fixed;
+			width: 100vw;
+			bottom: 0;
+			background-color: #000;
+			border-top: 2px solid #fff;
+			margin-bottom: -1px;
+			margin-top: 100px;
+			z-index: 100;
+		}
+
+		input {
+			box-sizing: border-box;
+			border: none;
+			background-color: transparent;
+			border: 1px solid #909090;
+
+			color: var(--c-f);
+			font-weight: 400;
+			font-size: 18px;
+			margin: 5px;
+		}
+
+		input:disabled {
+			color: #888;
+		}
+
+		input[type="number"] {
+			width: 4em;
+			margin: 2px 5px;
+		}
+
+		input[type="number"].xxl {
+			width: 100px;
+		}
+
+		input[type="number"].xl {
+			width: 85px;
+		}
+
+		input[type="number"].l {
+			width: 63px;
+		}
+
+		input[type="number"].m {
+			width: 56px;
+		}
+
+		input[type="number"].s {
+			width: 49px;
+		}
+
+		input[type="number"].xs {
+			width: 42px;
+		}
+
+		input[type="checkbox"] {
+			transform: scale(1.5);
+			background: transparent;
+			margin: 2px;
+		}
+
+		select {
+			box-sizing: border-box;
+			margin: 5px;
+			padding: 5px;
+			background: var(--c-2);
+			color: var(--c-f);
+			border-radius: 10px;
+			border: 2px solid var(--c-8);
+		}
+
+		select option {
+			background-color: var(--c-2);
+			color: var(--c-f);
+		}
+
+		td {
+			padding: 2px;
+		}
+
+		.d5 {
+			width: 4.5em !important;
+		}
+
+		#toast {
+			opacity: 0;
+			background-color: #444;
+			border-radius: 5px;
+			bottom: 64px;
+			color: #fff;
+			font-size: 17px;
+			padding: 16px;
+			pointer-events: none;
+			position: fixed;
+			text-align: center;
+			z-index: 5;
+			transform: translateX(-50%);
+			/* % because of AsyncWebServer */
+			max-width: 90%;
+			/* % because of AsyncWebServer */
+			left: 50%;
+			/* % because of AsyncWebServer */
+		}
+
+		#toast.show {
+			opacity: 1;
+			background-color: #264;
+			animation: fadein 0.5s, fadein 0.5s 2.5s reverse;
+		}
+
+		#toast.error {
+			opacity: 1;
+			background-color: #b21;
+			animation: fadein 0.5s;
+		}
+
+		h2 {
+			color: #4b9dc9;
+			text-align: center;
+			font-weight: 550;
+			font-size: 25px;
+			/* font: 500 30px "Barlow Condensed", sans-serif; */
+			margin: 20px;
+		}
 	</style>
 </head>
-<body onload="GetV()">
+
+<body onload="S()" id="wifi_settings">
 	<form id="form_s" name="Sf" method="post">
-		<div class="helpB"><button type="button" onclick="H()">?</button></div>
-		<button type="button" onclick="B()">Back</button><button type="submit">Save & Connect</button><hr>
+		<div class="topsettingsmenu">
+			<div class="helpB"><button type="button" onclick="H()">?</button></div>
+			<button type="button" onclick="B()">Back</button><button type="submit">Save</button>
+		</div>
 		<h2>WiFi setup</h2>
 		<h3>Connect to existing network</h3>
-		Network name (SSID, empty to not connect): <br><input name="CS" maxlength="32"><br>
+		<div style="display: flex;justify-content: center;">
+			<button class="scan-button" type="button" id="scan" onclick="N()">Scan</button>
+		</div>
+		Network name: <br><input name="CS" maxlength="32" id="CS"><br>(SSID, empty to not connect)<br>
 		Network password: <br> <input type="password" name="CP" maxlength="63"><br>
 		Static IP (leave at 0.0.0.0 for DHCP):<br>
-		<input name="I0" type="number" class="s" min="0" max="255" required> .
-		<input name="I1" type="number" class="s" min="0" max="255" required> .
-		<input name="I2" type="number" class="s" min="0" max="255" required> .
-		<input name="I3" type="number" class="s" min="0" max="255" required><br>
+		<input name="I0" type="number" class="s" min="0" max="255" required required value="0"> .
+		<input name="I1" type="number" class="s" min="0" max="255" required required value="0"> .
+		<input name="I2" type="number" class="s" min="0" max="255" required required value="0"> .
+		<input name="I3" type="number" class="s" min="0" max="255" required required value="0"><br>
 		Static gateway:<br>
-		<input name="G0" type="number" class="s" min="0" max="255" required> .
-		<input name="G1" type="number" class="s" min="0" max="255" required> .
-		<input name="G2" type="number" class="s" min="0" max="255" required> .
-		<input name="G3" type="number" class="s" min="0" max="255" required><br>
+		<input name="G0" type="number" class="s" min="0" max="255"> .
+		<input name="G1" type="number" class="s" min="0" max="255"> .
+		<input name="G2" type="number" class="s" min="0" max="255"> .
+		<input name="G3" type="number" class="s" min="0" max="255"><br>
 		Static subnet mask:<br>
-		<input name="S0" type="number" class="s" min="0" max="255" required> .
-		<input name="S1" type="number" class="s" min="0" max="255" required> .
-		<input name="S2" type="number" class="s" min="0" max="255" required> .
-		<input name="S3" type="number" class="s" min="0" max="255" required><br>
-		mDNS address (leave empty for no mDNS):<br/>
-		http:// <input name="CM" maxlength="32"> .local<br>
-		Client IP: <span class="sip"> Not connected </span> <br>
+		<input name="S0" type="number" class="s" min="0" max="255"> .
+		<input name="S1" type="number" class="s" min="0" max="255"> .
+		<input name="S2" type="number" class="s" min="0" max="255"> .
+		<input name="S3" type="number" class="s" min="0" max="255"><br>
+		mDNS address (leave empty for no mDNS):<br />
+		http:// <input name="CM" maxlength="32" value="hypnotik-"> .local<br>
+		<!-- Client IP: <span class="sip"> Not connected </span> <br>
 		<h3>Configure Access Point</h3>
 		AP SSID (leave empty for no AP):<br> <input name="AS" maxlength="32"><br>
 		Hide AP name: <input type="checkbox" name="AH"><br>
-		AP password (leave empty for open):<br> <input type="password" name="AP" maxlength="63" pattern="(.{8,63})|()" title="Empty or min. 8 characters"><br>
+		AP password (leave empty for open):<br> <input type="password" name="AP" maxlength="63" pattern="(.{8,63})|()"
+			title="Empty or min. 8 characters"><br>
 		Access Point WiFi channel: <input name="AC" type="number" class="xs" min="1" max="13" required><br>
-    AP opens:
-    <select name="AB">
-    <option value="0">No connection after boot</option>
-    <option value="1">Disconnected</option>
-    <option value="2">Always</option>
-    <option value="3">Never (not recommended)</option></select><br>
+		AP opens:
+		<select name="AB">
+			<option value="0">No connection after boot</option>
+			<option value="1">Disconnected</option>
+			<option value="2">Always</option>
+			<option value="3">Never (not recommended)</option>
+		</select><br>
 		AP IP: <span class="sip"> Not active </span><br>
 		<h3>Experimental</h3>
 		Disable WiFi sleep: <input type="checkbox" name="WS"><br>
 		<i>Can help with connectivity issues.<br>
-		Do not enable if WiFi is working correctly, increases power consumption.</i>
+			Do not enable if WiFi is working correctly, increases power consumption.</i>
 		<div id="ethd">
-		<h3>Ethernet Type</h3>
-		<select name="ETH">
-		<option value="0">None</option>
-		<option value="2">ESP32-POE</option>
-		<option value="6">ESP32Deux</option>
-		<option value="7">KIT-VE</option>
-		<option value="4">QuinLED-ESP32</option>
-		<option value="5">TwilightLord-ESP32</option>
-		<option value="3">WESP32</option>
-		<option value="1">WT32-ETH01</option>
-		</select><br><br></div>
-		<hr>
-		<button type="button" onclick="B()">Back</button><button type="submit">Save & Connect</button>
+			<h3>Ethernet Type</h3>
+			<select name="ETH">
+				<option value="0">None</option>
+				<option value="2">ESP32-POE</option>
+				<option value="6">ESP32Deux</option>
+				<option value="7">KIT-VE</option>
+				<option value="4">QuinLED-ESP32</option>
+				<option value="5">TwilightLord-ESP32</option>
+				<option value="3">WESP32</option>
+				<option value="1">WT32-ETH01</option>
+			</select><br><br>
+		</div> -->
+		<div style="margin-top: 50px;height: 1px;"></div>
+		<div class="bottomsettingsmenu">
+			<button type="button" onclick="B()">Back</button><button type="submit">Save</button>
+		</div>
 	</form>
 </body>
+
 </html>

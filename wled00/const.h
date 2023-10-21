@@ -7,9 +7,9 @@
 
 //Defaults
 #define DEFAULT_CLIENT_SSID ""
-#define DEFAULT_AP_SSID     "WLED"
+#define DEFAULT_AP_SSID     "HYPNOTIK"
 #define DEFAULT_AP_PASS     ""
-#define DEFAULT_OTA_PASS    "wledota"
+#define DEFAULT_OTA_PASS    "hypnotikota"
 
 //increase if you need more
 #ifndef WLED_MAX_USERMODS

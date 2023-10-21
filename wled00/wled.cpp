@@ -2,6 +2,7 @@
 #include "wled.h"
 #include "wled_ethernet.h"
 #include <Arduino.h>
+#include <ESP32SDDP.h>
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(WLED_DISABLE_BROWNOUT_DET)
 #include "soc/soc.h"
@@ -15,6 +16,27 @@
 WLED::WLED()
 {
 }
+
+SDDP sddp;       // SDDP library
+uint32_t sddp_time_interval = (uint32_t)(CONFIG_SDDP_MAX_AGE * SDDP_MILLISECOND_MULTIPLIER);                // SDDP MAX age 
+uint32_t sddp_time_now = 0;
+uint32_t sddp_time_prev = 0;
+bool hypnotik_flag_WiFiAP = false;
+#ifdef SDDP_CLIENT_START_DELAY
+  uint32_t sddp_init_time = SDDP_CLIENT_START_DELAY;
+#endif
+bool flag_sddp_alive = false;
+
+  SDDPDeviceConfig dev = {
+  .product_name = CONFIG_SDDP_PRODUCT_NAME,
+  .type = CONFIG_SDDP_TYPE,
+  .primary_proxy = CONFIG_SDDP_PRIMARY_PROXY,
+  .proxies = CONFIG_SDDP_PROXIES,
+  .manufacturer = CONFIG_SDDP_MANUFACTURER,
+  .model = CONFIG_SDDP_MODEL,
+  .driver = CONFIG_SDDP_DRIVER,
+  .max_age = CONFIG_SDDP_MAX_AGE 
+};
 
 // turns all LEDs off and restarts ESP
 void WLED::reset()
@@ -81,7 +103,7 @@ void prepareHostname(char* hostname)
 void WiFiEvent(WiFiEvent_t event)
 {
   #ifdef WLED_USE_ETHERNET
-  char hostname[25] = "wled-";
+  char hostname[25] = "hypnotik-";
   #endif
 
   switch (event) {
@@ -131,6 +153,45 @@ void WLED::loop()
   handleSerial();
   handleNotifications();
   handleTransitions();
+
+  
+  /****************************************************
+   *                SDDP LOOP                         
+   ****************************************************/
+  #ifdef SDDP_CLIENT_START_DELAY
+    if(millis() >= sddp_init_time)
+  #endif
+  if(WLED_CONNECTED) {
+    if(WiFi.isConnected() && (flag_sddp_alive == false)) {
+      flag_sddp_alive = true;
+      if(sddp.begin("HYPNOTIK")) {
+        Serial.println("SDDP broadcasted!");
+        // AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_SDDP D_LOG_SDDP_SUCCESS_INIT " and broadcasted " D_LOG_SDDP_NOTIFY_ALIVE));
+      } else {
+        // AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_SDDP D_LOG_SDDP_FAILED_INIT));
+        Serial.println("SDDP failed starting");
+      }
+    }
+
+    // sddp_time_now = millis();
+    // if((sddp_time_now - sddp_time_prev) >= sddp_time_interval) {
+    //   sddp_time_prev = sddp_time_now;
+      sddp.loop();
+      //Serial.println("SDDP LOOP");
+      // AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_SDDP D_LOG_SDDP_TRIGGERED_UPDATE " for " D_LOG_SDDP_NOTIFY_ALIVE));
+      // Serial.println("SDDP Keep Alive event");
+    // } 
+  }
+  else
+  {
+    //Serial.println("hypnotik NOT CONNECTED ");
+  }
+  /****************************************************
+  *                END SDDP LOOP                         
+  ****************************************************/
+
+
+
 #ifdef WLED_ENABLE_DMX
   handleDMX();
 #endif
@@ -454,15 +515,15 @@ void WLED::setup()
 
   if (strcmp(cmDNS, "x") == 0)        // fill in unique mdns default
   {
-    strcpy_P(cmDNS, PSTR("wled-"));
-    sprintf(cmDNS + 5, "%*s", 6, escapedMac.c_str() + 6);
+    strcpy_P(cmDNS, PSTR("hypnotik-"));
+    sprintf(cmDNS + 9, "%*s", 6, escapedMac.c_str() + 6);
   }
   if (mqttDeviceTopic[0] == 0) {
-    strcpy_P(mqttDeviceTopic, PSTR("wled/"));
-    sprintf(mqttDeviceTopic + 5, "%*s", 6, escapedMac.c_str() + 6);
+    strcpy_P(mqttDeviceTopic, PSTR("hypnotik/"));
+    sprintf(mqttDeviceTopic + 9, "%*s", 6, escapedMac.c_str() + 6);
   }
   if (mqttClientID[0] == 0) {
-    strcpy_P(mqttClientID, PSTR("WLED-"));
+    strcpy_P(mqttClientID, PSTR("HYPNOTIK-"));
     sprintf(mqttClientID + 5, "%*s", 6, escapedMac.c_str() + 6);
   }
 
@@ -503,6 +564,10 @@ void WLED::setup()
   #if defined(ARDUINO_ARCH_ESP32) && defined(WLED_DISABLE_BROWNOUT_DET)
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 1); //enable brownout detector
   #endif
+
+   /* SDDP Device configuration */
+  sddp.setDevice(&dev);
+
 }
 
 void WLED::beginStrip()
@@ -699,7 +764,7 @@ void WLED::initConnection()
   DEBUG_PRINTLN("...");
 
   // convert the "serverDescription" into a valid DNS hostname (alphanumeric)
-  char hostname[25] = "wled-";
+  char hostname[25] = "hypnotik-";
   prepareHostname(hostname);
 
 #ifdef ESP8266
@@ -749,8 +814,8 @@ void WLED::initInterfaces()
 
     DEBUG_PRINTLN(F("mDNS started"));
     MDNS.addService("http", "tcp", 80);
-    MDNS.addService("wled", "tcp", 80);
-    MDNS.addServiceTxt("wled", "tcp", "mac", escapedMac.c_str());
+    MDNS.addService("hypnotik", "tcp", 80);
+    MDNS.addServiceTxt("hypnotik", "tcp", "mac", escapedMac.c_str());
   }
   server.begin();
 

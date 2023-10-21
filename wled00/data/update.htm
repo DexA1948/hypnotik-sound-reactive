@@ -2,51 +2,96 @@
 <html>
 
 <head>
-    <meta content='width=device-width' name='viewport'>
-    <title>WLED Update</title>
-    <script>function B() { window.history.back() }
-    function U() {document.getElementById("uf").style.display="none";document.getElementById("msg").style.display="block";}
-    </script>
-    <style>
-      .bt {
-        background: #333;
-        color: #fff;
-        font-family: Verdana, sans-serif;
-        border: .3ch solid #333;
-        display: inline-block;
-        font-size: 20px;
-        margin: 8px;
-        margin-top: 12px
-      }
+  <meta content='width=device-width' name='viewport'>
+  <title>Hypnotik Update</title>
+  <script>function B() { window.history.back() }
+    function U() { document.getElementById("uf").style.display = "none"; document.getElementById("msg").style.display = "block"; }
+  </script>
+  <style>
+    /* .bt {
+      background: #333;
+      color: #fff;
+      font-family: sans-serif;
+      border: .3ch solid #333;
+      display: inline-block;
+      font-size: 20px;
+      margin: 8px;
+      margin-top: 12px
+    } */
 
-      input[type=file] {
-        font-size: 16px
-      }
+    input[type=file] {
+      box-sizing: border-box;
+      border: none;
+      background-color: transparent;
+      border: 1px solid #909090;
+      /* width: 100%; */
 
-      body {
-        font-family: Verdana, sans-serif;
-        text-align: center;
-        background: #222;
-        color: #fff;
-        line-height: 200%
-      }
+      color: var(--c-f);
+      font-weight: 400;
+      font-size: 20px;
+      /* font: 400 20px "Barlow Condensed", sans-serif; */
+      /* padding: 5px; */
+      margin: 5px;
+    }
 
-      #msg {
-        display: none;
-      }
-    </style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #000;
+      color: #fff;
+      line-height: 200%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #msg {
+      display: none;
+    }
+
+    .bt {
+      outline: none;
+      cursor: pointer;
+      padding: 10px;
+      margin: 5px;
+      /* width: 100px; */
+      text-transform: uppercase;
+      font-size: 15px;
+      font-style: normal;
+      font-weight: 550;
+      line-height: normal;
+      border: 1px solid var(--black-500, #909090);
+      background: var(--white, #000);
+      color: var(--black-900, #fff);
+      border-radius: 25px;
+    }
+
+    .bt:hover {
+      background: var(--white, #fff);
+      color: var(--black-900, #000);
+      border-radius: 25px;
+    }
+  </style>
 </head>
 
 <body>
-    <h2>Sound Reactive WLED Software Update</h2>
+
+  <div>
+    <img alt="" class="hyp-logo" src="/hyplogo">
+    <h2>Sound Reactive Hypnotik Software Update</h2>
     <form method='POST' action='/update' id='uf' enctype='multipart/form-data' onsubmit="U()">
-      Installed version: Athom SR ##VERSION##<br>
-      Download the latest binary: <a href="https://github.com/athom-tech/Sound-Reactive-WLED/releases" target="_blank">
-      <img src="https://img.shields.io/github/release/atuline/WLED.svg?style=flat-square"></a><br>
-      <input type='file' class="bt" name='update' required><br> <!--should have accept='.bin', but it prevents file upload from android app-->
-      <input type='submit' class="bt" value='Update!' ><br>
-      <button type="button" class="bt" onclick="B()">Back</button></form>
+      Installed version: Hypnotik SR ##VERSION##<br>
+      <!-- Download the latest binary: <a href="https://github.com/athom-tech/Sound-Reactive-WLED/releases" target="_blank">
+      <img src="https://img.shields.io/github/release/atuline/WLED.svg?style=flat-square"></a><br> -->
+      <input type='file' name='update' required><br>
+      <!--should have accept='.bin', but it prevents file upload from android app-->
+      <input type='submit' class="bt" value='Update!'><br>
+      <button type="button" class="bt" onclick="B()">Back</button>
+    </form>
     <div id="msg"><b>Updating...</b><br>Please do not close or refresh the page :)</div>
+  </div>
+
 </body>
 
 </html>

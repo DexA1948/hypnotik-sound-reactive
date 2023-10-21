@@ -165,6 +165,7 @@ using PSRAMDynamicJsonDocument = BasicJsonDocument<PSRAM_Allocator>;
 #include "html_ui.h"
 #include "html_settings.h"
 #include "html_other.h"
+#include "html_hypnotik_logo.h"
 #include "FX.h"
 #include "ir_codes.h"
 #include "const.h"
@@ -311,7 +312,7 @@ WLED_GLOBAL int8_t i2sckPin _INIT(I2S_CKPIN);
 
 //WLED_GLOBAL byte presetToApply _INIT(0);
 
-WLED_GLOBAL char ntpServerName[33] _INIT("0.wled.pool.ntp.org");   // NTP server to use
+WLED_GLOBAL char ntpServerName[33] _INIT("0.hypnotik.pool.ntp.org");   // NTP server to use
 
 // WiFi CONFIG (all these can be changed via web UI, no need to set them here)
 WLED_GLOBAL char clientSSID[33] _INIT(CLIENT_SSID);
@@ -370,7 +371,7 @@ WLED_GLOBAL byte briMultiplier _INIT(100);          // % of brightness to set (t
 
 // User Interface CONFIG
 #ifndef SERVERNAME
-WLED_GLOBAL char serverDescription[33] _INIT("WLED-SoundReactive");  // Name of module - use default
+WLED_GLOBAL char serverDescription[33] _INIT("HYPNOTIK-SoundReactive");  // Name of module - use default
 #else
 WLED_GLOBAL char serverDescription[33] _INIT(SERVERNAME);  // use predefined name
 #endif
@@ -813,4 +814,30 @@ public:
   void enableWatchdog();
   void disableWatchdog();
 };
+
+
+
+
+/** This is the delay value for delaying 
+ * triggering of SDDP Notify Alive message
+ * so as to make sure that WiFi connection has been stable */
+#define SDDP_CLIENT_START_DELAY (uint32_t)10000
+// #undef SDDP_CLIENT_START_DELAY
+
+/* Millisecond Multiplier */
+#define SDDP_MILLISECOND_MULTIPLIER (uint32_t)1000
+
+/* SDDP Device configuration parameters */
+#define     CONFIG_SDDP_PRODUCT_NAME        "ESP32-HYPNOTIK"
+#define     CONFIG_SDDP_TYPE                "ESP8266-HYPNOTIK-NODE"
+#define     CONFIG_SDDP_PRIMARY_PROXY       "Node"
+#define     CONFIG_SDDP_PROXIES             "Node,Client"
+#define     CONFIG_SDDP_MANUFACTURER        "Espressif"
+#define     CONFIG_SDDP_MODEL               "ESP32"
+#define     CONFIG_SDDP_DRIVER              "N/A"
+#define     CONFIG_SDDP_MAX_AGE             1800
+
+
+
+
 #endif        // WLED_H

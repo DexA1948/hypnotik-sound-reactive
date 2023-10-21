@@ -1,10 +1,10 @@
 //page js
 var loc = false, locip;
 var noNewSegs = false;
-var isOn = false, nlA = false, isLv = false, isInfo = false, isCEEditor = false, isNodes = false, syncSend = false, syncTglRecv = true;
+var isOn = false, nlA = false, isLv = false, isInfo = false, isCEEditor = false, isNodes = false, syncSend = false, syncTglRecv = true, isSettings = false;
 var hasWhite = false, hasRGB = false, hasCCT = false;
-var whites = [0,0,0];
-var colors = [[0,0,0],[0,0,0],[0,0,0]];
+var whites = [0, 0, 0];
+var colors = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 var expanded = [false];
 var powered = [true];
 var nlDur = 60, nlTar = 0;
@@ -30,38 +30,66 @@ var lastinfo = {};
 var ws;
 var fxlist = d.getElementById('fxlist'), pallist = d.getElementById('pallist');
 var cfg = {
-  theme:{base:"dark", bg:{url:""}, alpha:{bg:0.6,tab:0.8}, color:{bg:""}},
-  comp :{colors:{picker: true, rgb: false, quick: true, hex: false},
-          labels:true, pcmbot:false, pid:true, seglen:false, css:true, hdays:false}
+  theme: { base: "dark", bg: { url: "" }, alpha: { bg: 0.6, tab: 0.8 }, color: { bg: "" } },
+  comp: {
+    colors: { picker: true, rgb: false, quick: true, hex: false },
+    labels: true, pcmbot: false, pid: true, seglen: false, css: true, hdays: false
+  }
 };
 var hol = [
-  [0,11,24,4,"https://aircoookie.github.io/xmas.png"], // christmas
-  [0,2,17,1,"https://images.alphacoders.com/491/491123.jpg"], // st. Patrick's day
-  [2022,3,17,2,"https://aircoookie.github.io/easter.png"],
-  [2023,3,9,2,"https://aircoookie.github.io/easter.png"],
-  [2024,2,31,2,"https://aircoookie.github.io/easter.png"]
+  [0, 11, 24, 4, "https://aircoookie.github.io/xmas.png"], // christmas
+  [0, 2, 17, 1, "https://images.alphacoders.com/491/491123.jpg"], // st. Patrick's day
+  [2022, 3, 17, 2, "https://aircoookie.github.io/easter.png"],
+  [2023, 3, 9, 2, "https://aircoookie.github.io/easter.png"],
+  [2024, 2, 31, 2, "https://aircoookie.github.io/easter.png"]
 ];
 
+function appendOutput() {
+  const sections = document.querySelectorAll('.colors-slider-containers');
+
+  sections.forEach(section => {
+    const output = document.createElement('output');
+    output.className = 'sliderbubble-up';
+    const mobileSlider = section.querySelector('.mobile-colors-slider');
+    const desktopSlider = section.querySelector('.desktop-colors-slider');
+
+    // If the output element is already appended somewhere, remove it
+    if (section.querySelector('.sliderbubble-up')) {
+      section.querySelector('.sliderbubble-up').remove();
+    }
+
+    if (window.innerWidth < 685) {
+      // Append to mobile slider if window width is less than 685px
+      mobileSlider.appendChild(output);
+    } else {
+      // Append to desktop slider otherwise
+      desktopSlider.appendChild(output);
+    }
+  });
+}
+
+
+
 //WLEDSR (from blaz)
-function gId(c) {return d.getElementById(c);}
+function gId(c) { return d.getElementById(c); }
 
 var cpick = new iro.ColorPicker("#picker", {
-	width: 260,
-	wheelLightness: false,
-	wheelAngle: 270,
-	wheelDirection: "clockwise",
-	layout: [
-		{
-			component: iro.ui.Wheel,
-			options: {}
-		}
-	]
+  width: 260,
+  wheelLightness: false,
+  wheelAngle: 0,
+  wheelDirection: "clockwise",
+  layout: [
+    {
+      component: iro.ui.Wheel,
+      options: {}
+    }
+  ]
 });
 
 var isInInputField = false; //WLEDSR: do not (re)populateSegment if editing segment
 
 function handleVisibilityChange() {
-  if (!d.hidden && new Date () - lastUpdate > 3000) {
+  if (!d.hidden && new Date() - lastUpdate > 3000) {
     requestJson(null);
   }
 }
@@ -70,148 +98,153 @@ function sCol(na, col) {
   d.documentElement.style.setProperty(na, col);
 }
 
-function isEmpty(o) {return Object.keys(o).length === 0;} //WLEDSR Blazoncek default slider values
+function isEmpty(o) { return Object.keys(o).length === 0; } //WLEDSR Blazoncek default slider values
 
 function isRgbBlack(a, s) {
-	return (a[s][0] == 0 && a[s][1] == 0 && a[s][2] == 0);
+  return (a[s][0] == 0 && a[s][1] == 0 && a[s][2] == 0);
 }
 
 // returns RGB color from a given slot s 0-2 from color array a
 function rgbStr(a, s) {
-	return "rgb(" + a[s][0] + "," + a[s][1] + "," + a[s][2] + ")";
+  return "rgb(" + a[s][0] + "," + a[s][1] + "," + a[s][2] + ")";
 }
 
 // brightness approximation for selecting white as text color if background bri < 127, and black if higher
 function rgbBri(a, s) {
-	var R = a[s][0], G = a[s][1], B = a[s][2];
-	return 0.2126*R + 0.7152*G + 0.0722*B;
+  var R = a[s][0], G = a[s][1], B = a[s][2];
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
 }
 
-// sets background of color slot selectors
-function setCSL(s) {
-	var cd = d.getElementsByClassName('cl')[s];
-	var w = whites[s];
-	if (hasRGB && !isRgbBlack(colors, s)) {
-		cd.style.background = rgbStr(colors, s);
-		cd.style.color = rgbBri(colors, s) > 127 ? "#000":"#fff";
-		if (hasWhite && w > 0) {
-			cd.style.background = `linear-gradient(180deg, ${rgbStr(colors, s)} 30%, ${rgbStr([[w,w,w]], 0)})`;
-		}
-	} else {
-		if (!hasWhite) w = 0;
-		cd.style.background = rgbStr([[w,w,w]], 0);
-		cd.style.color = w > 127 ? "#000":"#fff";
-	}
-}
+// // sets background of color slot selectors
+// function setCSL(s) {
+
+//   if(window.innerWidth <= 685){
+//     var cd = d.getElementsByClassName('cl')[s+3];
+//   }else{
+//     var cd = d.getElementsByClassName('cl')[s];
+//   }
+
+//   var w = whites[s];
+//   if (hasRGB && !isRgbBlack(colors, s)) {
+//     cd.style.background = rgbStr(colors, s);
+//     cd.style.color = rgbBri(colors, s) > 127 ? "#000" : "#fff";
+//     if (hasWhite && w > 0) {
+//       cd.style.background = `linear-gradient(180deg, ${rgbStr(colors, s)} 30%, ${rgbStr([[w, w, w]], 0)})`;
+//     }
+//   } else {
+//     if (!hasWhite) w = 0;
+//     cd.style.background = rgbStr([[w, w, w]], 0);
+//     cd.style.color = w > 127 ? "#000" : "#fff";
+//   }
+// }
 
 function isRgbBlack(a, s) {
-	return (a[s][0] == 0 && a[s][1] == 0 && a[s][2] == 0);
+  return (a[s][0] == 0 && a[s][1] == 0 && a[s][2] == 0);
 }
 
 // returns RGB color from a given slot s 0-2 from color array a
 function rgbStr(a, s) {
-	return "rgb(" + a[s][0] + "," + a[s][1] + "," + a[s][2] + ")";
+  return "rgb(" + a[s][0] + "," + a[s][1] + "," + a[s][2] + ")";
 }
 
 // brightness approximation for selecting white as text color if background bri < 127, and black if higher
 function rgbBri(a, s) {
-	var R = a[s][0], G = a[s][1], B = a[s][2];
-	return 0.2126*R + 0.7152*G + 0.0722*B;
+  var R = a[s][0], G = a[s][1], B = a[s][2];
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
 }
 
 // sets background of color slot selectors
+// sets background of color slot selectors
 function setCSL(s) {
-	var cd = d.getElementsByClassName('cl')[s];
-	var w = whites[s];
-	if (hasRGB && !isRgbBlack(colors, s)) {
-		cd.style.background = rgbStr(colors, s);
-		cd.style.color = rgbBri(colors, s) > 127 ? "#000":"#fff";
-		if (hasWhite && w > 0) {
-			cd.style.background = `linear-gradient(180deg, ${rgbStr(colors, s)} 30%, ${rgbStr([[w,w,w]], 0)})`;
-		}
-	} else {
-		if (!hasWhite) w = 0;
-		cd.style.background = rgbStr([[w,w,w]], 0);
-		cd.style.color = w > 127 ? "#000":"#fff";
-	}
+
+  var cd = d.getElementsByClassName('cl')[s];
+
+  var w = whites[s];
+  if (hasRGB && !isRgbBlack(colors, s)) {
+    cd.style.background = rgbStr(colors, s);
+    cd.style.color = rgbBri(colors, s) > 127 ? "#000" : "#fff";
+    if (hasWhite && w > 0) {
+      cd.style.background = `linear-gradient(180deg, ${rgbStr(colors, s)} 30%, ${rgbStr([[w, w, w]], 0)})`;
+    }
+  } else {
+    if (!hasWhite) w = 0;
+    cd.style.background = rgbStr([[w, w, w]], 0);
+    cd.style.color = w > 127 ? "#000" : "#fff";
+  }
 }
 
-function applyCfg()
-{
-	cTheme(cfg.theme.base === "light");
-	var bg = cfg.theme.color.bg;
-	if (bg) sCol('--c-1', bg);
-	if (lastinfo.leds) updateUI(); // update component visibility
-	var l = cfg.comp.labels;
-	sCol('--tbp',l ? "14px 14px 10px 14px":"10px 22px 4px 22px");
-	sCol('--bbp',l ? "9px 0 7px 0":"10px 0 4px 0");
-	sCol('--bhd',l ? "block":"none"); // hides/shows button labels
-	sCol('--bmt',l ? "0px":"5px");
-	sCol('--t-b', cfg.theme.alpha.tab);
-	size();
-	localStorage.setItem('wledUiCfg', JSON.stringify(cfg));
+function applyCfg() {
+  cTheme(cfg.theme.base === "light");
+  var bg = cfg.theme.color.bg;
+  if (bg) sCol('--c-1', bg);
+  if (lastinfo.leds) updateUI(); // update component visibility
+  var l = cfg.comp.labels;
+  sCol('--tbp', l ? "14px 14px 10px 14px" : "10px 22px 4px 22px");
+  sCol('--bbp', l ? "9px 0 7px 0" : "10px 0 4px 0");
+  sCol('--bhd', l ? "block" : "none"); // hides/shows button labels
+  sCol('--bmt', l ? "0px" : "5px");
+  sCol('--t-b', cfg.theme.alpha.tab);
+  size();
+  localStorage.setItem('wledUiCfg', JSON.stringify(cfg));
 }
 
-function tglHex()
-{
+function tglHex() {
   cfg.comp.colors.hex = !cfg.comp.colors.hex;
   applyCfg();
 }
 
-function tglTheme()
-{
-  cfg.theme.base = (cfg.theme.base === "light") ? "dark":"light";
+function tglTheme() {
+  cfg.theme.base = (cfg.theme.base === "light") ? "dark" : "light";
   applyCfg();
 }
 
-function tglLabels()
-{
+function tglLabels() {
   cfg.comp.labels = !cfg.comp.labels;
   applyCfg();
 }
 
 function cTheme(light) {
-	if (light) {
-		sCol('--c-1','#eee');
-		sCol('--c-f','#000');
-		sCol('--c-2','#ddd');
-		sCol('--c-3','#bbb');
-		sCol('--c-4','#aaa');
-		sCol('--c-5','#999');
-		sCol('--c-6','#999');
-		sCol('--c-8','#888');
-		sCol('--c-b','#444');
-		sCol('--c-c','#333');
-		sCol('--c-e','#111');
-		sCol('--c-d','#222');
-		sCol('--c-r','#c42');
-		sCol('--c-o','rgba(204, 204, 204, 0.9)');
-		sCol('--c-sb','#0003'); sCol('--c-sbh','#0006');
-		sCol('--c-tb','rgba(204, 204, 204, var(--t-b))');
-		sCol('--c-tba','rgba(170, 170, 170, var(--t-b))');
-		sCol('--c-tbh','rgba(204, 204, 204, var(--t-b))');
-		d.getElementById('imgw').style.filter = "invert(0.8)";
-	} else { // default dark theme
-		sCol('--c-1','#111');
-		sCol('--c-f','#fff');
-		sCol('--c-2','#222');
-		sCol('--c-3','#333');
-		sCol('--c-4','#444');
-		sCol('--c-5','#555');
-		sCol('--c-6','#666');
-		sCol('--c-8','#888');
-		sCol('--c-b','#bbb');
-		sCol('--c-c','#ccc');
-		sCol('--c-e','#eee');
-		sCol('--c-d','#ddd');
-		sCol('--c-r','#831');
-		sCol('--c-o','rgba(34, 34, 34, 0.9)');
-		sCol('--c-sb','#fff3'); sCol('--c-sbh','#fff5');
-		sCol('--c-tb','rgba(34, 34, 34, var(--t-b))');
-		sCol('--c-tba','rgba(102, 102, 102, var(--t-b))');
-		sCol('--c-tbh','rgba(51, 51, 51, var(--t-b))');
-		d.getElementById('imgw').style.filter = "unset";
-	}
+  if (light) {
+    sCol('--c-1', '#eee');
+    sCol('--c-f', '#000');
+    sCol('--c-2', '#ddd');
+    sCol('--c-3', '#bbb');
+    sCol('--c-4', '#aaa');
+    sCol('--c-5', '#999');
+    sCol('--c-6', '#999');
+    sCol('--c-8', '#888');
+    sCol('--c-b', '#444');
+    sCol('--c-c', '#333');
+    sCol('--c-e', '#111');
+    sCol('--c-d', '#222');
+    sCol('--c-r', '#c42');
+    sCol('--c-o', 'rgba(204, 204, 204, 0.9)');
+    sCol('--c-sb', '#0003'); sCol('--c-sbh', '#0006');
+    sCol('--c-tb', 'rgba(204, 204, 204, var(--t-b))');
+    sCol('--c-tba', 'rgba(170, 170, 170, var(--t-b))');
+    sCol('--c-tbh', 'rgba(204, 204, 204, var(--t-b))');
+    d.getElementById('imgw').style.filter = "invert(0.8)";
+  } else { // default dark theme
+    sCol('--c-1', '#000');
+    sCol('--c-f', '#fff');
+    sCol('--c-2', '#222');
+    sCol('--c-3', '#333');
+    sCol('--c-4', '#444');
+    sCol('--c-5', '#555');
+    sCol('--c-6', '#666');
+    sCol('--c-8', '#888');
+    sCol('--c-b', '#bbb');
+    sCol('--c-c', '#ccc');
+    sCol('--c-e', '#eee');
+    sCol('--c-d', '#ddd');
+    sCol('--c-r', '#831');
+    sCol('--c-o', 'rgba(34, 34, 34, 0.9)');
+    sCol('--c-sb', '#fff3'); sCol('--c-sbh', '#fff5');
+    sCol('--c-tb', 'rgba(34, 34, 34, var(--t-b))');
+    sCol('--c-tba', 'rgba(102, 102, 102, var(--t-b))');
+    sCol('--c-tbh', 'rgba(51, 51, 51, var(--t-b))');
+    d.getElementById('imgw').style.filter = "unset";
+  }
 }
 
 function loadBg(iUrl) {
@@ -220,12 +253,12 @@ function loadBg(iUrl) {
   img.src = iUrl;
   if (iUrl == "") {
     var today = new Date();
-    for (var i=0; i<hol.length; i++) {
-      var yr = hol[i][0]==0 ? today.getFullYear() : hol[i][0];
-      var hs = new Date(yr,hol[i][1],hol[i][2]);
+    for (var i = 0; i < hol.length; i++) {
+      var yr = hol[i][0] == 0 ? today.getFullYear() : hol[i][0];
+      var hs = new Date(yr, hol[i][1], hol[i][2]);
       var he = new Date(hs);
       he.setDate(he.getDate() + hol[i][3]);
-      if (today>=hs && today<=he)	img.src = hol[i][4];
+      if (today >= hs && today <= he) img.src = hol[i][4];
     }
   }
   img.addEventListener('load', (event) => {
@@ -237,87 +270,214 @@ function loadBg(iUrl) {
   });
 }
 
-function loadSkinCSS(cId)
-{
+function loadSkinCSS(cId) {
   if (!d.getElementById(cId))	// check if element exists
   {
-    var h  = document.getElementsByTagName('head')[0];
-    var l  = document.createElement('link');
-    l.id   = cId;
-    l.rel  = 'stylesheet';
+    var h = document.getElementsByTagName('head')[0];
+    var l = document.createElement('link');
+    l.id = cId;
+    l.rel = 'stylesheet';
     l.type = 'text/css';
-    l.href = (loc?`http://${locip}`:'.') + '/skin.css';
+    l.href = (loc ? `http://${locip}` : '.') + '/skin.css';
     l.media = 'all';
     h.appendChild(l);
   }
 }
 
 function onLoad() {
-	if (window.location.protocol == "file:") {
-	loc = true;
-	locip = localStorage.getItem('locIp');
-		if (!locip) {
-			locip = prompt("File Mode. Please enter WLED IP!");
-			localStorage.setItem('locIp', locip);
-		}
-	}
-	var sett = localStorage.getItem('wledUiCfg');
-	if (sett) cfg = mergeDeep(cfg, JSON.parse(sett));
 
-	resetPUtil();
+  if (window.location.protocol == "file:") {
+    loc = true;
+    locip = localStorage.getItem('locIp');
+    if (!locip) {
+      locip = prompt("File Mode. Please enter WLED IP!");
+      localStorage.setItem('locIp', locip);
+    }
+  }
+  var sett = localStorage.getItem('wledUiCfg');
+  if (sett) cfg = mergeDeep(cfg, JSON.parse(sett));
 
-	applyCfg();
-	if (cfg.comp.hdays) { //load custom holiday list
-		fetch((loc?`http://${locip}`:'.') + "/holidays.json", {	// may be loaded from external source
-			method: 'get'
-		})
-		.then(res => {
-			//if (!res.ok) showErrorToast();
-			return res.json();
-		})
-		.then(json => {
-			if (Array.isArray(json)) hol = json;
-			//TODO: do some parsing first
-		})
-		.catch(function (error) {
-			console.log("No array of holidays in holidays.json. Defaults loaded.");
-		})
-		.finally(function(){
-			loadBg(cfg.theme.bg.url);
-		});
-	} else
-		loadBg(cfg.theme.bg.url);
-	if (cfg.comp.css) loadSkinCSS('skinCss');
+  resetPUtil();
 
-	selectSlot(0);
-	updateTablinks(0);
-	resetUtil();
-	cpick.on("input:end", function() {
-		setColor(1);
-	});
-	cpick.on("color:change", updatePSliders);
-	pmtLS = localStorage.getItem('wledPmt');
-	setTimeout(function(){requestJson(null, false);}, 50);
-	d.addEventListener("visibilitychange", handleVisibilityChange, false);
-	size();
-	d.getElementById("cv").style.opacity=0;
-	if (localStorage.getItem('pcm') == "true") togglePcMode(true);
-	var sls = d.querySelectorAll('input[type="range"]');
-	for (var sl of sls) {
-		sl.addEventListener('input', updateBubble, true);
-		sl.addEventListener('touchstart', toggleBubble);
-		sl.addEventListener('touchend', toggleBubble);
-	}
+  const cslcontainerup = document.querySelector('.cslcontainerup');
+  const cslcontainerdown = document.querySelector('.cslcontainerdown');
+
+  if (window.innerWidth <= 685) {
+    cslcontainerdown.innerHTML = `
+      <div id="csl" class="csldown">
+        <button id="colorButton0" class="xxs cl btn" onclick="selectSlot(0);">1</button>
+        <button id="colorButton1" class="xxs cl btn" onclick="selectSlot(1);">2</button>
+        <button id="colorButton2" class="xxs cl btn" onclick="selectSlot(2);">3</button>
+      </div>
+    `;
+  } else {
+    cslcontainerup.innerHTML = `
+      <div id="csl">
+        <button id="colorButton0" class="xxs cl btn" onclick="selectSlot(0);">1</button>
+        <button id="colorButton1" class="xxs cl btn" onclick="selectSlot(1);">2</button>
+        <button id="colorButton2" class="xxs cl btn" onclick="selectSlot(2);">3</button>
+      </div>
+    `;
+  }
+
+  applyCfg();
+  if (cfg.comp.hdays) { //load custom holiday list
+    fetch((loc ? `http://${locip}` : '.') + "/holidays.json", {	// may be loaded from external source
+      method: 'get'
+    })
+      .then(res => {
+        //if (!res.ok) showErrorToast();
+        return res.json();
+      })
+      .then(json => {
+        if (Array.isArray(json)) hol = json;
+        //TODO: do some parsing first
+      })
+      .catch(function (error) {
+        console.log("No array of holidays in holidays.json. Defaults loaded.");
+      })
+      .finally(function () {
+        loadBg(cfg.theme.bg.url);
+      });
+  } else
+    loadBg(cfg.theme.bg.url);
+  // if (cfg.comp.css) loadSkinCSS('skinCss');
+
+  selectSlot(0);
+  updateTablinks(0);
+  resetUtil();
+  cpick.on("input:end", function () {
+    setColor(1);
+  });
+
+  cpick.on("color:change", updatePSliders);
+  pmtLS = localStorage.getItem('wledPmt');
+  setTimeout(function () { requestJson(null, false); }, 50);
+  if (window.innerWidth <= 685) {
+    setTimeout(function () { toggleLiveview(); }, 3000);
+  }
+  d.addEventListener("visibilitychange", handleVisibilityChange, false);
+  size();
+
+  d.getElementById("cv").style.opacity = 0;
+
+  if (localStorage.getItem('pcm') == "true") togglePcMode(true);
+
+  // Run once when the page loads
+  appendOutput();
+
+  // And re-run when the window is resized
+  window.addEventListener('resize', appendOutput);
+
+  // var sls = d.querySelectorAll('input[type="range"]');
+
+  // for (var sl of sls) {
+  //   if (sl.parentNode.getElementsByTagName('output')[0]) {
+  //     sl.parentNode.getElementsByTagName('output')[0].innerHTML = "";
+  //   } else if (sl.parentNode.parentNode.parentNode.querySelector("output[class='sliderbubble-up']")) {
+  //     var slUp = sl.parentNode.parentNode.parentNode.querySelector("output[class='sliderbubble-up']");
+  //     slUp.innerHTML = "";
+  //   }
+
+  //   sl.addEventListener('input', updateBubble, true);
+  //   // sl.addEventListener('touchstart', toggleBubble);
+  //   // sl.addEventListener('touchend', toggleBubble);
+  // }
+
+  closeSideNav();
+
+  // toggleLiveview();
+
+  // console.log(document.querySelectorAll('.mobile-colors-slider'));
+
 }
 
-function updateTablinks(tabI)
-{
+function updateTablinks(tabI) {
   var tablinks = d.getElementsByClassName("tablinks");
   for (var i of tablinks) {
     i.className = i.className.replace(" active", "");
   }
   if (pcMode) return;
   tablinks[tabI].className += " active";
+}
+
+function filterFx(e, val) {
+
+  let val2 = document.querySelector('#effectsearchbar input');
+
+  document.querySelectorAll('#effects-filter .filter-type').forEach(filtertype => {
+    filtertype.style.backgroundColor = "black";
+    filtertype.querySelectorAll('svg path').forEach(element => {
+      element.setAttribute('stroke', 'white');
+    });
+    filtertype.querySelectorAll('svg rect').forEach(element => {
+      element.setAttribute('stroke', 'white');
+    });
+    filtertype.querySelector("p").style.color = "white";
+  });
+
+  document.getElementById("frequency").querySelectorAll('svg path').forEach(element => {
+    element.setAttribute('fill', 'white');
+    element.setAttribute('stroke', 'none');
+  });
+
+  if (val2.value == val) {
+    val2.value = '';
+    e.style.backgroundColor = "black";
+    e.querySelectorAll('svg path').forEach(element => {
+      element.setAttribute('stroke', 'white');
+    });
+    e.querySelectorAll('svg rect').forEach(element => {
+      element.setAttribute('stroke', 'white');
+    });
+    document.getElementById("frequency").querySelectorAll('svg path').forEach(element => {
+      element.setAttribute('fill', 'white');
+      element.setAttribute('stroke', 'none');
+    });
+    e.querySelector("p").style.color = "white";
+  } else {
+    val2.value = val;
+    e.style.backgroundColor = "white";
+    e.querySelectorAll('svg path').forEach(element => {
+      element.setAttribute('stroke', 'black');
+    });
+    e.querySelectorAll('svg rect').forEach(element => {
+      element.setAttribute('stroke', 'black');
+    });
+
+    e.querySelector("p").style.color = "black";
+
+    if (e.id == "frequency") {
+      document.getElementById("frequency").querySelectorAll('svg path').forEach(element => {
+        element.setAttribute('fill', 'black');
+        element.setAttribute('stroke', 'none');
+      });
+    }
+  }
+  search(document.querySelector('#effectsearchbar input'))
+}
+
+function rgbToHex(r, g, b) {
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+
+  return '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).toUpperCase();
+}
+
+function hexToRgb(hex) {
+  // Ensure the hash prefix is there
+  if (hex.charAt(0) !== '#') {
+    hex = '#' + hex;
+  }
+
+  // Parse the hex string
+  let bigint = parseInt(hex.slice(1), 16);
+  let r = (bigint >> 16) & 255;
+  let g = (bigint >> 8) & 255;
+  let b = bigint & 255;
+
+  return [r, g, b];
 }
 
 function openTab(tabI, force = false) {
@@ -333,57 +493,53 @@ function showToast(text, error = false) {
   if (error) d.getElementById('connind').style.backgroundColor = "#831";
   var x = d.getElementById("toast");
   x.innerHTML = text;
-  x.className = error ? "error":"show";
+  x.className = error ? "error" : "show";
   clearTimeout(timeout);
   x.style.animation = 'none';
   x.style.animation = null;
-  timeout = setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2900);
+  timeout = setTimeout(function () { x.className = x.className.replace("show", ""); }, 2900);
 }
 
 function showErrorToast() {
-	// if we received a timeout force WS reconnect
-	reconnectWS();
-	showToast('Connection to light failed!', true);
+  // if we received a timeout force WS reconnect
+  reconnectWS();
+  showToast('Connection to light failed!', true);
 }
 function clearErrorToast() {
   d.getElementById("toast").className = d.getElementById("toast").className.replace("error", "");
 }
 
-function getRuntimeStr(rt)
-{
+function getRuntimeStr(rt) {
   var t = parseInt(rt);
-  var days = Math.floor(t/86400);
-  var hrs = Math.floor((t - days*86400)/3600);
-  var mins = Math.floor((t - days*86400 - hrs*3600)/60);
+  var days = Math.floor(t / 86400);
+  var hrs = Math.floor((t - days * 86400) / 3600);
+  var mins = Math.floor((t - days * 86400 - hrs * 3600) / 60);
   var str = days ? (days + " " + (days == 1 ? "day" : "days") + ", ") : "";
   str += (hrs || days) ? (hrs + " " + (hrs == 1 ? "hour" : "hours")) : "";
   if (!days && hrs) str += ", ";
   if (t > 59 && !days) str += mins + " min";
   if (t < 3600 && t > 59) str += ", ";
-  if (t < 3600) str += (t - mins*60) + " sec";
+  if (t < 3600) str += (t - mins * 60) + " sec";
   return str;
 }
 
-function inforow(key, val, unit = "")
-{
+function inforow(key, val, unit = "") {
   return `<tr><td class="keytd">${key}</td><td class="valtd">${val}${unit}</td></tr>`;
 }
 
 // WLEDSR begin
-function inforow1(key)
-{
+function inforow1(key) {
   return `<tr><td colspan=2 class="valtd">${key}</td></tr>`;
 }
 // WLEDSR end
 
-function getLowestUnusedP()
-{
-	var l = 1;
-	for (var key in pJson) {
-		if (key == l) l++;
-	}
-	if (l > 250) l = 250;
-	return l;
+function getLowestUnusedP() {
+  var l = 1;
+  for (var key in pJson) {
+    if (key == l) l++;
+  }
+  if (l > 250) l = 250;
+  return l;
 }
 
 function checkUsed(i) {
@@ -407,60 +563,59 @@ function isPlaylist(i) {
 
 function papiVal(i) {
   if (!pJson[i]) return "";
-  var o = Object.assign({},pJson[i]);
+  var o = Object.assign({}, pJson[i]);
   if (o.win) return o.win;
   delete o.n; delete o.p; delete o.ql;
   return JSON.stringify(o);
 }
 
 function qlName(i) {
-	if (!pJson[i]) return "";
-	if (!pJson[i].ql) return "";
-	return pJson[i].ql;
+  if (!pJson[i]) return "";
+  if (!pJson[i].ql) return "";
+  return pJson[i].ql;
 }
 
 function cpBck() {
   var copyText = d.getElementById("bck");
 
-	copyText.select();
-	copyText.setSelectionRange(0, 999999);
-	d.execCommand("copy");
+  copyText.select();
+  copyText.setSelectionRange(0, 999999);
+  d.execCommand("copy");
 
-	showToast("Copied to clipboard!");
+  showToast("Copied to clipboard!");
 }
 
-function presetError(empty)
-{
+function presetError(empty) {
   var hasBackup = false; var bckstr = "";
   try {
     bckstr = localStorage.getItem("wledP");
     if (bckstr.length > 10) hasBackup = true;
   } catch (e) {
 
-	}
-	var cn = `<div class="pres c">`;
-	if (empty)
-		cn += `You have no presets yet!`;
-	else
-		cn += `Sorry, there was an issue loading your presets!`;
+  }
+  var cn = `<div class="pres c">`;
+  if (empty)
+    cn += `You have no presets yet!`;
+  else
+    cn += `Sorry, there was an issue loading your presets!`;
 
-	if (hasBackup) {
-		cn += `<br><br>`;
-		if (empty)
-			cn += `However, there is backup preset data of a previous installation available.<br>
+  if (hasBackup) {
+    cn += `<br><br>`;
+    if (empty)
+      cn += `However, there is backup preset data of a previous installation available.<br>
 			(Saving a preset will hide this and overwrite the backup)`;
-		else
-			cn += `Here is a backup of the last known good state:`;
-		cn += `<textarea id="bck"></textarea><br>
+    else
+      cn += `Here is a backup of the last known good state:`;
+    cn += `<textarea id="bck"></textarea><br>
 			<button class="btn btn-p" onclick="cpBck()">Copy to clipboard</button>`;
-	}
-	cn += `</div>`;
-	d.getElementById('pcont').innerHTML = cn;
-	if (hasBackup) d.getElementById('bck').value = bckstr;
+  }
+  cn += `</div>`;
+  // d.getElementById('pcont').innerHTML = cn;
+  d.getElementById('pcont').innerHTML = "";
+  if (hasBackup) d.getElementById('bck').value = bckstr;
 }
 
-function loadPresets(callback = null)
-{
+function loadPresets(callback = null) {
   //1st boot (because there is a callback)
   if (callback && pmt == pmtLS && pmt > 0) {
     //we have a copy of the presets in local storage and don't need to fetch another one
@@ -480,255 +635,278 @@ function loadPresets(callback = null)
     url = `http://${locip}/presets.json`;
   }
 
-	fetch
-	(url, {
-		method: 'get'
-	})
-	.then(res => {
-		if (!res.ok) {
-			showErrorToast();
-		}
-		return res.json();
-	})
-	.then(json => {
-		pJson = json;
-		populatePresets();
-	})
-	.catch(function (error) {
-		showToast(error, true);
-		console.log(error);
-		presetError(false);
-	})
-	.finally(() => {
-		if (callback) setTimeout(callback,99);
-	});
+  fetch
+    (url, {
+      method: 'get'
+    })
+    .then(res => {
+      if (!res.ok) {
+        showErrorToast();
+      }
+      return res.json();
+    })
+    .then(json => {
+      pJson = json;
+      populatePresets();
+    })
+    .catch(function (error) {
+      showToast(error, true);
+      console.log(error);
+      presetError(false);
+    })
+    .finally(() => {
+      if (callback) setTimeout(callback, 99);
+    });
 }
 
 var pQL = [];
 
-function populateQL()
-{
-	var cn = "";
-	if (pQL.length > 0) {
-		cn += `<p class="labels">Quick load</p>`;
+function populateQL() {
+  var cn = "";
+  if (pQL.length > 0) {
+    cn += `<p class="labels">Quick load</p>`;
 
-		var it = 0;
-		for (var key of (pQL||[])) {
-			cn += `<button class="xxs btn psts" id="p${key[0]}qlb" onclick="setPreset(${key[0]});">${key[1]}</button>`;
-			it++;
-			if (it > 4) {
-				it = 0;
-				cn += '<br>';
-			}
-		}
-		if (it != 0) cn+= '<br>';
+    var it = 0;
+    for (var key of (pQL || [])) {
+      cn += `<button class="xxs btn psts" id="p${key[0]}qlb" onclick="setPreset(${key[0]});">${key[1]}</button>`;
+      it++;
+      if (it > 4) {
+        it = 0;
+        cn += '<br>';
+      }
+    }
+    if (it != 0) cn += '<br>';
 
-		cn += `<p class="labels">All presets</p>`;
-	}
-	d.getElementById('pql').innerHTML = cn;
+    cn += `<p class="labels">All presets</p>`;
+  }
+  d.getElementById('pql').innerHTML = cn;
 }
 
-function populatePresets(fromls)
-{
-	if (fromls) pJson = JSON.parse(localStorage.getItem("wledP"));
-	delete pJson["0"];
-	var cn = "";
-	var arr = Object.entries(pJson);
-	arr.sort(cmpP);
-	pQL = [];
-	var is = [];
-	pNum = 0;
+function populatePresets(fromls) {
+  if (fromls) pJson = JSON.parse(localStorage.getItem("wledP"));
+  delete pJson["0"];
+  var cn = "";
+  var arr = Object.entries(pJson);
+  arr.sort(cmpP);
+  pQL = [];
+  var is = [];
+  pNum = 0;
 
-	for (var key of (arr||[]))
-	{
-		if (!isObject(key[1])) continue;
-		let i = parseInt(key[0]);
-		var qll = key[1].ql;
-		if (qll) pQL.push([i, qll]);
-		is.push(i);
+  for (var key of (arr || [])) {
+    if (!isObject(key[1])) continue;
+    let i = parseInt(key[0]);
+    var qll = key[1].ql;
+    if (qll) pQL.push([i, qll]);
+    is.push(i);
 
-		cn += `<div class="pres" id="p${i}o">`;
-		if (cfg.comp.pid) cn += `<div class="pid">${i}</div>`;
-		cn += `<div class="${isPlaylist(i)?'plname':'pname'}" onclick="setPreset(${i})">${isPlaylist(i)?"<i class='icons btn-icon'>&#xe139;</i>":""}${pName(i)}</div>
-				<i class="icons e-icon flr ${expanded[i+100] ? "exp":""}" id="sege${i+100}" onclick="expand(${i+100})">&#xe395;</i>
-				<div class="segin" id="seg${i+100}"></div>
-			</div><br>`;
-		pNum++;
-	}
+    cn += `<div class="pres" id="p${i}o"><div style="padding: 2px 5px;">`;
+    if (cfg.comp.pid) cn += `<div class="pid"> ID ${i}</div>`;
+    cn += `
 
-	d.getElementById('pcont').innerHTML = cn;
-	if (pNum > 0) {
-		if (pmtLS != pmt && pmt != 0) {
-			localStorage.setItem("wledPmt", pmt);
-			pJson["0"] = {};
-			localStorage.setItem("wledP", JSON.stringify(pJson));
-		}
-		pmtLS = pmt;
-		for (var a = 0; a < is.length; a++) {
-		let i = is[a];
-		if (expanded[i+100]) expand(i+100, true);
-		}
-		//makePlSel(arr);
-	} else { presetError(true); }
-	updatePA();
-	populateQL();
-}
-
-function populateInfo(i)
-{
-	var cn="";
-	var heap = i.freeheap/1000;
-	heap = heap.toFixed(1);
-	var theap = (i.totalheap>0)?i.totalheap/1000:-1; theap = theap.toFixed(1); //WLEDSR - total heap is not available on 8266
-	var pwr = i.leds.pwr;
-	var pwru = "Not calculated";
-	if (pwr > 1000) {pwr /= 1000; pwr = pwr.toFixed((pwr > 10) ? 0 : 1); pwru = pwr + " A";}
-	else if (pwr > 0) {pwr = 50 * Math.round(pwr/50); pwru = pwr + " mA";}
-	var urows="";
-	if (i.u) {
-		for (const [k, val] of Object.entries(i.u)) {
-			if (val[1]) {
-				urows += inforow(k,val[0],val[1]);
-			} else {
-				urows += inforow(k,val);
-			}
-		}
-	}
-
-	var vcn = "Kuuhaku";
-	if (i.ver.startsWith("0.13.")) vcn = "Toki+SR";
-	if (i.cn) vcn = i.cn;
-
-	cn += `v${i.ver} "${vcn}"<br><br><table class="infot">
-	${inforow("SR Build",i.vid)}
-  ${inforow("BuildTime",i.buildtime)}
-  <!-- WLEDSR begin-->
-  ${inforow("Audio Source",i.audioType,i.audioStatus)}
-  ${i.audioWarning?inforow1("<em>Please "+i.audioWarning+"(s) !</em>"):""}
-  ${i.audioGain?(i.soundAgc>0?inforow("AGC Gain",i.audioGain,"x"):inforow("Manual Gain",i.audioGain,"x")):""}
-  ${i.audioProcess?inforow("Sound Processing",i.audioProcess,""):""}
-  ${inforow("UDP Sound Sync",i.ssyncMode,i.ssyncStatus)}
-	${urows}
-  <tr><td colspan=2><hr style="height:1px;border-width:0;color:gray;background-color:gray"></td></tr>
-  <!-- WLEDSR end-->  
-	${inforow("Signal strength",i.wifi.signal +"% ("+ i.wifi.rssi, " dBm)")}
-	${inforow("Uptime",getRuntimeStr(i.uptime))}
-	${inforow("Estimated current",pwru)}
-	${inforow("Frames / second",i.leds.fps)}
-    <tr><td colspan=2><hr style="height:1px;border-width:0;color:gray;background-color:gray"></td></tr>
-  ${inforow("MAC address",i.mac)}
-	${inforow("Filesystem",i.fs.u + "/" + i.fs.t + " kB (" +Math.round(i.fs.u*100/i.fs.t) + "%)")}
-	${inforow("Environment",i.arch + " " + i.core + " (" + i.lwip + ")")}
-  <!-- WLEDSR begin-->
-  ${theap>0?inforow("Total heap",theap," kB"):""}
-  ${theap>0?inforow("Used heap",((i.totalheap-i.freeheap)/1000).toFixed(1)," kB"):inforow("Free heap",heap," kB")}
-  ${i.minfreeheap?inforow("Max heap used",((i.totalheap-i.minfreeheap)/1000).toFixed(1)," kB"):""}
-  ${i.tpram?inforow("Total PSRAM",(i.tpram/1024).toFixed(1)," kB"):""}
-  ${i.psram?((i.tpram-i.psram)>16383?inforow("Used PSRAM",((i.tpram-i.psram)/1024).toFixed(1)," kB"):inforow("Used PSRAM",(i.tpram-i.psram)," B")):""}
-  ${i.psusedram?((i.tpram-i.psusedram)>16383?inforow("Max PSRAM used",((i.tpram-i.psusedram)/1024).toFixed(1)," kB"):inforow("Max PSRAM used",(i.tpram-i.psusedram)," B")):""}
-  <tr><td colspan=2><hr style="height:1px;border-width:0;color:SeaGreen;background-color:SeaGreen"></td></tr>
-  ${i.e32model?inforow(i.e32model,i.e32cores +" core(s)"," "+i.e32speed+" Mhz"):""}
-  ${i.e32flash?inforow("Flash "+i.e32flash+"MB"+" mode "+i.e32flashmode+i.e32flashtext,i.e32flashspeed," Mhz"):""}
-  <!-- WLEDSR end-->  
-  </table><br>`;
-	d.getElementById('kv').innerHTML = cn;
-}
-
-function populateSegments(s)
-{
-	var cn = "";
-	let li = lastinfo;
-	segCount = 0; lowestUnused = 0; lSeg = 0;
-
-	for (var y = 0; y < (s.seg||[]).length; y++)
-	{
-		segCount++;
-
-		var inst=s.seg[y];
-		let i = parseInt(inst.id);
-		powered[i] = inst.on;
-		if (i == lowestUnused) lowestUnused = i+1;
-		if (i > lSeg) lSeg = i;
-
-		//WLEDSR: add tooltip (title) and add reverse direction X / Y and rotation parameters and add onFocus/onBlur
-    cn += `<div title="Fx${inst.fx}: ${inst.start}-${inst.stop} (${inst.mi} ${inst.rev} ${inst.rev2D} ${inst.rot2D})" class="seg ${i==s.mainseg ? 'selected' : ''}">
-      <label class="check schkl">
-        &nbsp;
-        <input type="checkbox" id="seg${i}sel" onchange="selSeg(${i})" ${inst.sel ? "checked":""}>
-        <span class="checkmark schk"></span>
-      </label>
-			<i class="icons e-icon frz" id="seg${i}frz" onclick="event.preventDefault();tglFreeze(${i});" style="display:${inst.frz?"inline":"none"}">&#x${li.live && li.liveseg==i?'e410':'e325'};</i>
-      <div class="segname">
-        <div class="segntxt" onclick="selSegEx(${i})">${inst.n ? inst.n : "Segment "+i}</div>
-        <i class="icons edit-icon ${expanded[i] ? "expanded":""}" id="seg${i}nedit" onclick="tglSegn(${i})">&#xe2c6;</i>
+        <div class="${isPlaylist(i) ? 'plname' : 'pname'}" onclick="setPreset(${i})" style="display:inline;">
+          ${isPlaylist(i) ? "<i class='icons btn-icon'>&#xe139;</i>" : ""}${pName(i)}
+        </div>
+  
+        <i class="icons e-icon flr ${expanded[i + 100] ? "exp" : ""}" id="sege${i + 100}" onclick="expand(${i + 100})" style="margin-top: 3px;">&#xe395;</i>
       </div>
-      <i class="icons e-icon flr ${expanded[i] ? "exp":""}" id="sege${i}" onclick="expand(${i})">&#xe395;</i>
-      <div class="segin ${expanded[i] ? "expanded":""}" id="seg${i}">
-        <input type="text" class="ptxt stxt noslide" id="seg${i}t" autocomplete="off" maxlength=32 value="${inst.n?inst.n:""}" placeholder="Enter name..." onfocus="focusOn('name')" onblur="focusOff('name')"/>
-        <div class="sbs">
-        <i class="icons e-icon pwr ${powered[i] ? "act":""}" id="seg${i}pwr" onclick="setSegPwr(${i})">&#xe08f;</i>
-        <div class="sliderwrap il sws">
-          <input id="seg${i}bri" class="noslide" onchange="setSegBri(${i})" oninput="updateTrail(this)" max="255" min="1" type="range" value="${inst.bri}" />
-          <div class="sliderdisplay"></div>
+			
+      <div class="segin" id="seg${i + 100}"></div>
+		</div><br>`;
+    pNum++;
+  }
+
+  d.getElementById('pcont').innerHTML = cn;
+  if (pNum > 0) {
+    if (pmtLS != pmt && pmt != 0) {
+      localStorage.setItem("wledPmt", pmt);
+      pJson["0"] = {};
+      localStorage.setItem("wledP", JSON.stringify(pJson));
+    }
+    pmtLS = pmt;
+    for (var a = 0; a < is.length; a++) {
+      let i = is[a];
+      if (expanded[i + 100]) expand(i + 100, true);
+    }
+    //makePlSel(arr);
+  } else { presetError(true); }
+  updatePA();
+  populateQL();
+}
+
+function populateInfo(i) {
+  var cn = "";
+  var heap = i.freeheap / 1000;
+  heap = heap.toFixed(1);
+  var theap = (i.totalheap > 0) ? i.totalheap / 1000 : -1; theap = theap.toFixed(1); //WLEDSR - total heap is not available on 8266
+  var pwr = i.leds.pwr;
+  var pwru = "Not calculated";
+  if (pwr > 1000) { pwr /= 1000; pwr = pwr.toFixed((pwr > 10) ? 0 : 1); pwru = pwr + " A"; }
+  else if (pwr > 0) { pwr = 50 * Math.round(pwr / 50); pwru = pwr + " mA"; }
+  var urows = "";
+  if (i.u) {
+    for (const [k, val] of Object.entries(i.u)) {
+      if (val[1]) {
+        urows += inforow(k, val[0], val[1]);
+      } else {
+        urows += inforow(k, val);
+      }
+    }
+  }
+
+  var vcn = "Kuuhaku";
+  // if (i.ver.startsWith("0.13.")) vcn = "Toki+SR";
+  // if (i.cn) vcn = i.cn;
+
+  cn += `<p class="section-heading">Info</p>
+  <div class="hypnotik-logo info-logo">
+    <img style="width:200px;", alt="" src="hyplogo">
+	</div>
+  <table class="infotable">
+	${inforow("Build", i.vid)}
+  ${inforow("Signal Strength", i.wifi.signal + "% (" + i.wifi.rssi, " dBm)")}
+  ${i.audioGain ? (i.soundAgc > 0 ? inforow("AGC Gain", i.audioGain, "x") : inforow("Manual Gain", i.audioGain, "x")) : ""}
+  ${inforow("UDP Sound Sync", i.ssyncMode, i.ssyncStatus)} 
+  ${inforow("Uptime", getRuntimeStr(i.uptime))}
+  ${theap > 0 ? inforow("Used heap", ((i.totalheap - i.freeheap) / 1000).toFixed(1), " kB") : inforow("Free heap", heap, " kB")}
+  ${inforow("Estimated current", pwru)}
+  ${inforow("Frames / second", i.leds.fps)}
+  ${inforow("MAC address", i.mac)}
+  ${inforow("Filesystem", i.fs.u + "/" + i.fs.t + " kB (" + Math.round(i.fs.u * 100 / i.fs.t) + "%)")}
+	${inforow("Environment", i.arch + " " + i.core + " (" + i.lwip + ")")}
+  </table>
+  <div class="infobtncontainer" style="display: flex;justify-content: space-between;">
+			<button class="btn infobtn cancel-button" onclick="toggleInfo()">Back</button>
+			<!-- <button class="btn infobtn" onclick="toggleNodes()">Instance List</button> -->
+			<button class="btn infobtn cancel-button" id="resetbtn" onclick="cnfReset()">Reboot</button>
+			<button class="btn infobtn cancel-button-white" onclick="requestJson(null)">Refresh</button>
+		</div>
+    `;
+  d.getElementById('kv').innerHTML = cn;
+}
+
+function populateSegments(s) {
+  var cn = "";
+  let li = lastinfo;
+  segCount = 0; lowestUnused = 0; lSeg = 0;
+
+  for (var y = 0; y < (s.seg || []).length; y++) {
+    segCount++;
+
+    var inst = s.seg[y];
+    let i = parseInt(inst.id);
+    powered[i] = inst.on;
+    if (i == lowestUnused) lowestUnused = i + 1;
+    if (i > lSeg) lSeg = i;
+
+    //WLEDSR: add tooltip (title) and add reverse direction X / Y and rotation parameters and add onFocus/onBlur
+    cn += `<div title="Fx${inst.fx}: ${inst.start}-${inst.stop} (${inst.mi} ${inst.rev} ${inst.rev2D} ${inst.rot2D})" class="seg ${i == s.mainseg ? 'selected' : ''}">
+      <div style="padding: 3px 5px;">  
+        <label class="check-seg check">
+          <input type="checkbox" id="seg${i}sel" onchange="selSeg(${i})" ${inst.sel ? "checked" : ""}>
+          <span class="checkmark schk"></span>
+        </label>
+        <div class="segname">
+          <div class="segntxt" onclick="selSegEx(${i})">${inst.n ? inst.n : "Segment " + i}</div>
         </div>
+        <i class="icons e-icon flr ${expanded[i] ? "exp" : ""}" id="sege${i}" onclick="expand(${i})">&#xe395;</i>
+      </div>
+      <div class="segin ${expanded[i] ? "expanded" : ""}" id="seg${i}">
+        <hr/>
+        <label class="input-label">Segment Name</label>
+        <input type="text" class="ptxt stxt noslide" id="seg${i}t" autocomplete="off" maxlength=32 value="${inst.n ? inst.n : ""}" placeholder="Enter name..." onfocus="focusOn('name')" onblur="focusOff('name')"/>
+
+        <i class="icons e-icon pwr ${powered[i] ? "act" : ""}" id="seg${i}pwr" onclick="setSegPwr(${i})">&#xe08f;<span class="power-btn-text">Power</span></i>
+        
+        <div class="il">
+            <p class="hd segbri">Brightness</p>
+
+          <div class="briiwrap">
+            <div class="sliderwrap il sws">
+              <input id="seg${i}bri" class="noslide" onchange="setSegBri(${i})" max="254" min="1" type="range" value="${inst.bri}" oninput="updateBubble(event)"/>
+              <div class="sliderdisplay"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;">
+            <output class="sliderbubble-up"></output>
+          </div>
         </div>
+
         <table class="infot">
           <tr>
             <td class="segtd">Start LED</td>
-            <td class="segtd">${cfg.comp.seglen?"Length":"Stop LED"}</td>
+            <td></td>
+            <td class="segtd">${cfg.comp.seglen ? "Length" : "Stop LED"}</td>
+            <td></td>
             <td class="segtd">Offset</td>
           </tr>
           <tr>
-            <td class="segtd"><input class="noslide segn" id="seg${i}s" type="number" min="0" max="${ledCount-1}" value="${inst.start}" oninput="updateLen(${i})" onkeydown="segEnter(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
-            <td class="segtd"><input class="noslide segn" id="seg${i}e" type="number" min="0" max="${ledCount-(cfg.comp.seglen?inst.start:0)}" value="${inst.stop-(cfg.comp.seglen?inst.start:0)}" oninput="updateLen(${i})" onkeydown="segEnter(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
+            
+            <td class="segtd"><input class="noslide segn" id="seg${i}s" type="number" min="0" max="${ledCount - 1}" value="${inst.start}" oninput="updateLen(${i})" onkeydown="segEnter(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
+            <td></td>
+            <td class="segtd"><input class="noslide segn" id="seg${i}e" type="number" min="0" max="${ledCount - (cfg.comp.seglen ? inst.start : 0)}" value="${inst.stop - (cfg.comp.seglen ? inst.start : 0)}" oninput="updateLen(${i})" onkeydown="segEnter(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
+            <td></td>
             <td class="segtd"><input class="noslide segn" id="seg${i}of" type="number" value="${inst.of}" oninput="updateLen(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
           </tr>
         </table>
-        <table class="infot">
+        <table class="infot2">
           <tr>
+            <td></td>
             <td class="segtd">Grouping</td>
+            <td></td>
             <td class="segtd">Spacing</td>
-            <td class="segtd">Apply</td>
+            <td></td>
+            <!--<td class="segtd">Apply</td>-->
           </tr>
           <tr>
+            <td></td>
             <td class="segtd"><input class="noslide segn" id="seg${i}grp" type="number" min="1" max="255" value="${inst.grp}" oninput="updateLen(${i})" onkeydown="segEnter(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
+            <td></td>
             <td class="segtd"><input class="noslide segn" id="seg${i}spc" type="number" min="0" max="255" value="${inst.spc}" oninput="updateLen(${i})" onkeydown="segEnter(${i})" onfocus="focusOn(${i})" onblur="focusOff(${i})"></td>
-            <td class="segtd"><i class="icons e-icon cnf" id="segc${i}" onclick="setSeg(${i})">&#xe390;</i></td>
+            <td></td>
+            <!--<td class="segtd"><i class="icons e-icon cnf" id="segc${i}" onclick="setSeg(${i})">&#xe390;</i></td>-->
           </tr>
         </table>
         <div class="h" id="seg${i}len"></div>
-        <label class="check revchkl">
-          Reverse direction X
-          <input type="checkbox" id="seg${i}rev" onchange="setRev(${i})" ${inst.rev ? "checked":""}>
-          <span class="checkmark schk"></span>
-        </label>
-        <label class="check revchkl">
-          Reverse direction Y
-          <input type="checkbox" id="seg${i}rev2D" onchange="setrev2D(${i})" ${inst.rev2D ? "checked":""}>
-          <span class="checkmark schk"></span>
-        </label>
-        <label class="check revchkl">
-          Rotation
-          <input type="checkbox" id="seg${i}rot2D" onchange="setRot2D(${i})" ${inst.rot2D ? "checked":""}>
-          <span class="checkmark schk"></span>
-        </label>
-        <label class="check revchkl">
-          Mirror effect
-          <input type="checkbox" id="seg${i}mi" onchange="setMi(${i})" ${inst.mi ? "checked":""}>
-          <span class="checkmark schk"></span>
-        </label>
+        
+        <div style="display:flex;flex-direction:row;justify-content: space-between;align-items:center;margin: 0px 1px 5px;"> 
+          
+          <div class="revchkl">
+            <label class="check">
+              <input type="checkbox" id="seg${i}rev" onchange="setRev(${i})" ${inst.rev ? "checked" : ""}>
+              <span class="checkmark schk"></span>
+            </label>
+            <p>Reverse Direction</p>
+          </div>
+
+          <div class="revchkl">
+            <label class="check">
+              <input type="checkbox" id="seg${i}mi" onchange="setMi(${i})" ${inst.mi ? "checked" : ""}>
+              <span class="checkmark schk"></span>
+            </label>
+            <p>Mirror Effect</p>
+          </div>
+
+        </div>
+
+        <div class="apply-button-container">
+          <button class="apply-button" id="segc${i}" onclick="setSeg(${i}); expand(${i})">
+              Apply
+          </button>
+        </div>
+        
         <div class="del">
           <button class="xxs btn no-margin" id="segr${i}" title="Repeat until end" onclick="rptSeg(${i})"><i class="icons no-margin">&#xe22d;</i></button>
           <button class="xxs btn no-margin" id="segd${i}" title="Delete" onclick="delSeg(${i})"><i class="icons no-margin">&#xe037;</i></button>
         </div>`;
 
-        // WLEDSR Custom Effects
-        if (inst.fx == 187)
-        cn += `<button class="btn" onclick="toggleCEEditor('${inst.n?inst.n:"default"}', ${i})">Custom Effect Editor</button><br>
+    // WLEDSR Custom Effects
+    if (inst.fx == 187)
+      cn += `<button class="btn" onclick="toggleCEEditor('${inst.n ? inst.n : "default"}', ${i})">Custom Effect Editor</button><br>
           </div>
           </div><br>`;
-      else
-        cn += `</div>
+    else
+      cn += `</div>
           </div><br>`;
   }
 
@@ -741,24 +919,23 @@ function populateSegments(s)
     noNewSegs = false;
   }
   for (var i = 0; i <= lSeg; i++) {
-		updateLen(i);
-		updateTrail(d.getElementById(`seg${i}bri`));
-		let segr = d.getElementById(`segr${i}`);
-		if (segr) segr.style.display = "none";
-	}
+    updateLen(i);
+    // updateTrail(d.getElementById(`seg${i}bri`));
+    let segr = d.getElementById(`segr${i}`);
+    if (segr) segr.style.display = "none";
+  }
   if (segCount < 2) d.getElementById(`segd${lSeg}`).style.display = "none";
-  if (!noNewSegs && (cfg.comp.seglen?parseInt(d.getElementById(`seg${lSeg}s`).value):0)+parseInt(d.getElementById(`seg${lSeg}e`).value)<ledCount) d.getElementById(`segr${lSeg}`).style.display = "inline";
-  d.getElementById('rsbtn').style.display = (segCount > 1) ? "inline":"none";
+  if (!noNewSegs && (cfg.comp.seglen ? parseInt(d.getElementById(`seg${lSeg}s`).value) : 0) + parseInt(d.getElementById(`seg${lSeg}e`).value) < ledCount) d.getElementById(`segr${lSeg}`).style.display = "inline";
+  d.getElementById('rsbtn').style.display = (segCount > 1) ? "inline" : "none";
 }
 
-function populateEffects(effects)
-{
-  var html = `<div id="effectsearchbar" class="staytop"><input type="text" class="search" placeholder="Search" oninput="search(this)" />
+function populateEffects(effects) {
+  var html = `<div id="effectsearchbar"><input type="text" class="search" placeholder="Search" oninput="search(this)" />
   <i class="icons search-icon">&#xe0a1;</i><i class="icons search-cancel-icon" onclick="cancelSearch(this)">&#xe38f;</i></div>`;
 
   effects.shift(); // remove solid
   for (let i = 0; i < effects.length; i++) {
-    effects[i] = {id: parseInt(i)+1, name:effects[i]};
+    effects[i] = { id: parseInt(i) + 1, name: effects[i] };
   }
   effects.sort(compare);
 
@@ -780,7 +957,7 @@ function populateEffects(effects)
       html += generateListItemHtml(
         'fx',
         effects[i].id,
-        effects[i].name.substr(0,posAt),
+        effects[i].name.substr(0, posAt),
         'setX',
         '',
         effects[i].class,
@@ -789,43 +966,41 @@ function populateEffects(effects)
     }
   }
 
-  fxlist.innerHTML=html;
+  fxlist.innerHTML = html;
 }
 
-function populatePalettes(palettes)
-{
-	palettes.shift(); //remove default
-	for (let i = 0; i < palettes.length; i++) {
-		palettes[i] = {
-			"id": parseInt(i)+1,
-			"name": palettes[i]
-		};
-	}
-	palettes.sort(compare);
+function populatePalettes(palettes) {
+  palettes.shift(); //remove default
+  for (let i = 0; i < palettes.length; i++) {
+    palettes[i] = {
+      "id": parseInt(i) + 1,
+      "name": palettes[i]
+    };
+  }
+  palettes.sort(compare);
 
-	palettes.unshift({
-		"id": 0,
-		"name": "Default",
-		"class": "sticky"
-	});
+  palettes.unshift({
+    "id": 0,
+    "name": "Default",
+    "class": "sticky"
+  });
 
-	var html = `<div class="searchbar"><input type="text" class="search" placeholder="Search" oninput="search(this)" />
+  var html = `<div class="searchbar"><input type="text" class="search" placeholder="Search" oninput="search(this)" />
 <i class="icons search-icon">&#xe0a1;</i><i class="icons search-cancel-icon" onclick="cancelSearch(this)">&#xe38f;</i></div>`;
-	for (let i = 0; i < palettes.length; i++) {
-		html += generateListItemHtml(
-			'palette',
-			palettes[i].id,
-			palettes[i].name,
-			'setPalette',
-			`<div class="lstIprev" style="${genPalPrevCss(palettes[i].id)}"></div>`,
-			palettes[i].class,
-		);
-	}
-	pallist.innerHTML=html;
+  for (let i = 0; i < palettes.length; i++) {
+    html += generateListItemHtml(
+      'palette',
+      palettes[i].id,
+      palettes[i].name,
+      'setPalette',
+      `<div class="lstIprev" style="${genPalPrevCss(palettes[i].id)}"></div>`,
+      palettes[i].class,
+    );
+  }
+  pallist.innerHTML = html;
 }
 
-function redrawPalPrev()
-{
+function redrawPalPrev() {
   let palettes = d.querySelectorAll('#pallist .lstI');
   for (let i = 0; i < palettes.length; i++) {
     let id = palettes[i].dataset.id;
@@ -836,8 +1011,7 @@ function redrawPalPrev()
   }
 }
 
-function genPalPrevCss(id)
-{
+function genPalPrevCss(id) {
   if (!palettesData) {
     return;
   }
@@ -855,43 +1029,42 @@ function genPalPrevCss(id)
     }
   }
 
-	var gradient = [];
-	for (let j = 0; j < paletteData.length; j++) {
-		const element = paletteData[j];
-		let r;
-		let g;
-		let b;
-		let index = false;
-		if (Array.isArray(element)) {
-			index = element[0]/255*100;
-			r = element[1];
-			g = element[2];
-			b = element[3];
-		} else if (element == 'r') {
-			r = Math.random() * 255;
-			g = Math.random() * 255;
-			b = Math.random() * 255;
-		} else {
-			if (colors) {
-				let pos = element[1] - 1;
-				r = colors[pos][0];
-				g = colors[pos][1];
-				b = colors[pos][2];
-			}
-		}
-		if (index === false) {
-			index = j / paletteData.length * 100;
-		}
+  var gradient = [];
+  for (let j = 0; j < paletteData.length; j++) {
+    const element = paletteData[j];
+    let r;
+    let g;
+    let b;
+    let index = false;
+    if (Array.isArray(element)) {
+      index = element[0] / 255 * 100;
+      r = element[1];
+      g = element[2];
+      b = element[3];
+    } else if (element == 'r') {
+      r = Math.random() * 255;
+      g = Math.random() * 255;
+      b = Math.random() * 255;
+    } else {
+      if (colors) {
+        let pos = element[1] - 1;
+        r = colors[pos][0];
+        g = colors[pos][1];
+        b = colors[pos][2];
+      }
+    }
+    if (index === false) {
+      index = j / paletteData.length * 100;
+    }
 
-		gradient.push(`rgb(${r},${g},${b}) ${index}%`);
-	}
+    gradient.push(`rgb(${r},${g},${b}) ${index}%`);
+  }
 
   return `background: linear-gradient(to right,${gradient.join()});`;
 }
 
 // WLEDSR: add effectPar for slider and color control, add name to onClick
-function generateListItemHtml(listName, id, name, clickAction, extraHtml = '', extraClass = '', effectPar = '')
-{
+function generateListItemHtml(listName, id, name, clickAction, extraHtml = '', extraClass = '', effectPar = '') {
   return `<div id="${listName}${id}" class="lstI btn fxbtn ${extraClass}" data-id="${id}" onClick="${clickAction}(${id}, '${name}', '${effectPar}')">
       <label class="radio fxchkl">
         <input type="radio" value="${id}" name="${listName}">
@@ -904,116 +1077,124 @@ function generateListItemHtml(listName, id, name, clickAction, extraHtml = '', e
     </div>`;
 }
 
-function btype(b){
-	switch (b) {
-		case 32: return "ESP32";
-		case 82: return "ESP8266";
-	}
-	return "?";
-}
-function bname(o){
-	if (o.name=="WLED") return o.ip;
-	return o.name;
-}
-
-function populateNodes(i,n)
-{
-	var cn="";
-	var urows="";
-	var nnodes = 0;
-	if (n.nodes) {
-		n.nodes.sort((a,b) => (a.name).localeCompare(b.name));
-		for (var x=0;x<n.nodes.length;x++) {
-			var o = n.nodes[x];
-			if (o.name) {
-				var url = `<button class="btn no-margin tab" onclick="location.assign('http://${o.ip}');">${bname(o)}</button>`;
-				urows += inforow(url,`${btype(o.type)}<br><i>${o.vid==0?"N/A":o.vid}</i>`);
-						nnodes++;
-			}
-		}
-	}
-	if (i.ndc < 0) cn += `Instance List is disabled.`;
-	else if (nnodes == 0) cn += `No other instances found.`;
-	cn += `<table class="infot">
-${urows}
-${inforow("Current instance:",i.name)}
-</table>`;
-	d.getElementById('kn').innerHTML = cn;
-}
-
-function loadNodes()
-{
-  var url = '/json/nodes';
-  if (loc) {
-    url = `http://${locip}/json/nodes`;
+function btype(b) {
+  switch (b) {
+    case 32: return "ESP32";
+    case 82: return "ESP8266";
   }
-
-  fetch
-	(url, {
-		method: 'get'
-	})
-	.then(res => {
-		if (!res.ok) {
-			showToast('Could not load Node list!', true);
-		}
-		return res.json();
-	})
-	.then(json => {
-		populateNodes(lastinfo, json);
-	})
-	.catch(function (error) {
-		showToast(error, true);
-		console.log(error);
-	});
+  return "?";
 }
+function bname(o) {
+  if (o.name == "WLED") return o.ip;
+  return o.name;
+}
+
+// function populateNodes(i, n) {
+//   var cn = "";
+//   var urows = "";
+//   var nnodes = 0;
+//   if (n.nodes) {
+//     n.nodes.sort((a, b) => (a.name).localeCompare(b.name));
+//     for (var x = 0; x < n.nodes.length; x++) {
+//       var o = n.nodes[x];
+//       if (o.name) {
+//         var url = `<button class="btn no-margin tab" onclick="location.assign('http://${o.ip}');">${bname(o)}</button>`;
+//         urows += inforow(url, `${btype(o.type)}<br><i>${o.vid == 0 ? "N/A" : o.vid}</i>`);
+//         nnodes++;
+//       }
+//     }
+//   }
+//   if (i.ndc < 0) cn += `Instance List is disabled.`;
+//   else if (nnodes == 0) cn += `No other instances found.`;
+//   cn += `<table class="infot">
+// ${urows}
+// ${inforow("Current instance:", i.name)}
+// </table>`;
+//   d.getElementById('kn').innerHTML = cn;
+// }
+
+// function loadNodes() {
+//   var url = '/json/nodes';
+//   if (loc) {
+//     url = `http://${locip}/json/nodes`;
+//   }
+
+//   fetch
+//     (url, {
+//       method: 'get'
+//     })
+//     .then(res => {
+//       if (!res.ok) {
+//         showToast('Could not load Node list!', true);
+//       }
+//       return res.json();
+//     })
+//     .then(json => {
+//       populateNodes(lastinfo, json);
+//     })
+//     .catch(function (error) {
+//       showToast(error, true);
+//       console.log(error);
+//     });
+// }
 
 //update the 'sliderdisplay' background div of a slider for a visual indication of slider position
-function updateTrail(e)
-{
-	if (e==null) return;
-	var max = e.hasAttribute('max') ? e.attributes.max.value : 255;
-	var perc = e.value * 100 / max;
-	perc = parseInt(perc);
-	if (perc < 50) perc += 2;
-	var val = `linear-gradient(90deg, var(--bg) ${perc}%, var(--c-4) ${perc}%)`;
-	e.parentNode.getElementsByClassName('sliderdisplay')[0].style.background = val;
+function updateTrail(e) {
+  if (e == null) return;
+  var max = e.hasAttribute('max') ? e.attributes.max.value : 255;
+  var perc = e.value * 100 / max;
+  perc = parseInt(perc);
+  if (perc < 50) perc += 2;
+  var val = `linear-gradient(90deg, var(--bg) ${perc}%, var(--c-4) ${perc}%)`;
+  e.parentNode.getElementsByClassName('sliderdisplay')[0].style.background = val;
 }
 
 //rangetouch slider function
-function updateBubble(e)
-{
-	var bubble = e.target.parentNode.getElementsByTagName('output')[0];
-	if (bubble) {
-		bubble.innerHTML = e.target.value;
-	}
+function updateBubble(e) {
+  // console.log("updateBubble", e.target, e);
+  if (e == null) return;
+  let bubble = e.parentNode.getElementsByTagName('output')[0] ? e.parentNode.getElementsByTagName('output')[0] : e.parentNode.parentNode.parentNode.querySelector("output[class='sliderbubble-up']");
+
+  let max = e.hasAttribute('max') ? e.attributes.max.value : 255;
+
+  if (max == 255) {
+    if (bubble) {
+      bubble.innerHTML = e.value;
+      return;
+    }
+  }
+
+  let perc = e.value * 100 / max;
+  perc = parseInt(perc);
+
+  if (bubble) {
+    bubble.innerHTML = perc + "%";
+  }
 }
 
 //rangetouch slider function
-function toggleBubble(e)
-{
+function toggleBubble(e) {
   e.target.parentNode.querySelector('output').classList.toggle('hidden');
 }
 
 //updates segment length upon input of segment values
-function updateLen(s)
-{
-	if (!d.getElementById(`seg${s}s`)) return;
-	var start = parseInt(d.getElementById(`seg${s}s`).value);
-	var stop  = parseInt(d.getElementById(`seg${s}e`).value);
-	var len = stop - (cfg.comp.seglen?0:start);
-	var out = "(delete)";
-	if (len > 1) {
-		out = `${len} LEDs`;
-	} else if (len == 1) {
-		out = "1 LED";
-	}
+function updateLen(s) {
+  if (!d.getElementById(`seg${s}s`)) return;
+  var start = parseInt(d.getElementById(`seg${s}s`).value);
+  var stop = parseInt(d.getElementById(`seg${s}e`).value);
+  var len = stop - (cfg.comp.seglen ? 0 : start);
+  var out = "(delete)";
+  if (len > 1) {
+    out = `${len} LEDs`;
+  } else if (len == 1) {
+    out = "1 LED";
+  }
 
-  if (d.getElementById(`seg${s}grp`) != null)
-  {
+  if (d.getElementById(`seg${s}grp`) != null) {
     var grp = parseInt(d.getElementById(`seg${s}grp`).value);
     var spc = parseInt(d.getElementById(`seg${s}spc`).value);
     if (grp == 0) grp = 1;
-    var virt = Math.ceil(len/(grp + spc));
+    var virt = Math.ceil(len / (grp + spc));
     if (!isNaN(virt) && (grp > 1 || spc > 0)) out += ` (${virt} virtual)`;
   }
 
@@ -1029,60 +1210,65 @@ function focusOff(name) {
 }
 
 // updates background color of currently selected preset
-function updatePA()
-{
-	var ps = d.getElementsByClassName("pres"); //reset all preset buttons
-	for (var i of ps) {
-		i.classList.remove("selected");
-	}
-	ps = d.getElementsByClassName("psts"); //reset all quick selectors
-	for (var i of ps) {
-		i.classList.remove("selected");
-	}
-	if (currentPreset > 0) {
-		var acv = d.getElementById(`p${currentPreset}o`);
-		if (acv && !expanded[currentPreset+100])
-			acv.classList.add("selected");
-		acv = d.getElementById(`p${currentPreset}qlb`);
-		if (acv)
-			acv.classList.add("selected");
-	}
+function updatePA() {
+  var ps = d.getElementsByClassName("pres"); //reset all preset buttons
+  for (var i of ps) {
+    i.classList.remove("selected");
+  }
+  ps = d.getElementsByClassName("psts"); //reset all quick selectors
+  for (var i of ps) {
+    i.classList.remove("selected");
+  }
+  if (currentPreset > 0) {
+    var acv = d.getElementById(`p${currentPreset}o`);
+    if (acv && !expanded[currentPreset + 100])
+      acv.classList.add("selected");
+    acv = d.getElementById(`p${currentPreset}qlb`);
+    if (acv)
+      acv.classList.add("selected");
+  }
 }
 
-function updateUI()
-{
-  d.getElementById('buttonPower').className = (isOn) ? "active":"";
-  d.getElementById('buttonNl').className = (nlA) ? "active":"";
-  d.getElementById('buttonSync').className = (syncSend) ? "active":"";
+function updateUI() {
+  d.getElementById('buttonPower').className = (isOn) ? "active" : "";
+  d.getElementById('buttonNl').className = (nlA) ? "active" : "";
+  d.getElementById('buttonSync').className = (syncSend) ? "active" : "";
 
   //WLEDSR Blazoncek default slider values
   updateSelectedPalette();
   updateSelectedFx();
 
-  updateTrail(d.getElementById('sliderBri'));
+  // updateTrail(d.getElementById('sliderBri'));
   updateTrail(d.getElementById('sliderInputLevel')); //WLEDSR
   updateTrail(d.getElementById('sliderSpeed'));
   updateTrail(d.getElementById('sliderIntensity'));
   updateTrail(d.getElementById('sliderCustom1'));
   updateTrail(d.getElementById('sliderCustom2'));
   updateTrail(d.getElementById('sliderCustom3'));
-	d.getElementById('wwrap').style.display = (hasWhite) ? "block":"none";
-	d.getElementById('wbal').style.display = (hasCCT) ? "block":"none";
-	var ccfg = cfg.comp.colors;
-	d.getElementById('hexw').style.display = ccfg.hex ? "block":"none";
-	d.getElementById('pwrap').style.display = (hasRGB && ccfg.picker) ? "block":"none";
-	d.getElementById('kwrap').style.display = (hasRGB && !hasCCT && ccfg.picker) ? "block":"none";
-	d.getElementById('rgbwrap').style.display = (hasRGB && ccfg.rgb) ? "block":"none";
-	d.getElementById('qcs-w').style.display = (hasRGB && ccfg.quick) ? "block":"none";
-	d.getElementById('palwrap').style.display = hasRGB ? "block":"none";
 
-	updatePA();
-	updatePSliders();
+  var sls = d.querySelectorAll('input[type="range"]');
+
+  for (var sl of sls) {
+    updateBubble(sl);
+  }
+
+  // d.getElementById('vwrap').style.display = (!hasMBR) ? "block" : "none";
+  d.getElementById('wwrap').style.display = (hasWhite) ? "block" : "none";
+  d.getElementById('wbal').style.display = (hasCCT) ? "block" : "none";
+  var ccfg = cfg.comp.colors;
+  d.getElementById('hexw').style.display = ccfg.hex ? "block" : "none";
+  d.getElementById('pwrap').style.display = (hasRGB && ccfg.picker) ? "block" : "none";
+  d.getElementById('kwrap').style.display = (hasRGB && !hasCCT && ccfg.picker) ? "block" : "none";
+  d.getElementById('rgbwrap').style.display = (hasRGB && ccfg.rgb) ? "block" : "none";
+  d.getElementById('qcs-w').style.display = (hasRGB && ccfg.quick) ? "block" : "none";
+  d.getElementById('palwrap').style.display = hasRGB ? "block" : "none";
+
+  updatePA();
+  updatePSliders();
 }
 
 //WLEDSR Blazoncek default slider values
-function updateSelectedPalette()
-{
+function updateSelectedPalette() {
   // Palettes
   pallist.querySelector(`input[name="palette"][value="${selectedPal}"]`).checked = true;
   selElement = pallist.querySelector('.selected');
@@ -1094,8 +1280,7 @@ function updateSelectedPalette()
 }
 
 //WLEDSR Blazoncek default slider values
-function updateSelectedFx()
-{
+function updateSelectedFx() {
   // Effects
   var selFx = fxlist.querySelector(`input[name="fx"][value="${selectedFx}"]`);
   if (selFx) selFx.checked = true;
@@ -1111,8 +1296,8 @@ function updateSelectedFx()
     selectedEffect.classList.add('selected');
 
     //Blazoncek default value
-    var fx = (selectedFx != prevFx) && currentPreset==-1; // effect changed & preset==none
-		var ps = (prevPS != currentPreset) && currentPreset==-1; // preset changed & preset==none
+    var fx = (selectedFx != prevFx) && currentPreset == -1; // effect changed & preset==none
+    var ps = (prevPS != currentPreset) && currentPreset == -1; // preset changed & preset==none
 
     // WLEDSR: extract the Slider and color control string from the HTML element and set it.
     sliderControl = selectedEffect.outerHTML.replace(/&amp;/g, "&");
@@ -1121,7 +1306,7 @@ function updateSelectedFx()
       selectedEffectNameHTML = sliderControl.substring(0, posAt);
       sliderControl = sliderControl.substring(posAt);
       var posAt = sliderControl.indexOf(')"');
-      sliderControl = sliderControl.substring(0,posAt-1);
+      sliderControl = sliderControl.substring(0, posAt - 1);
     }
     else {
       selectedEffectNameHTML = "";
@@ -1132,12 +1317,11 @@ function updateSelectedFx()
   }
 }
 
-function displayRover(i,s)
-{
-	d.getElementById('rover').style.transform = (i.live && s.lor == 0 && i.liveseg<0) ? "translateY(0px)":"translateY(100%)";
-	var sour = i.lip ? i.lip:""; if (sour.length > 2) sour = " from " + sour;
-	d.getElementById('lv').innerHTML = `WLED is receiving live ${i.lm} data${sour}`;
-	d.getElementById('roverstar').style.display = (i.live && s.lor) ? "block":"none";
+function displayRover(i, s) {
+  d.getElementById('rover').style.transform = (i.live && s.lor == 0 && i.liveseg < 0) ? "translateY(0px)" : "translateY(100%)";
+  var sour = i.lip ? i.lip : ""; if (sour.length > 2) sour = " from " + sour;
+  d.getElementById('lv').innerHTML = `WLED is receiving live ${i.lm} data${sour}`;
+  d.getElementById('roverstar').style.display = (i.live && s.lor) ? "block" : "none";
 }
 
 function compare(a, b) {
@@ -1145,61 +1329,68 @@ function compare(a, b) {
   return 1;
 }
 function cmpP(a, b) {
-	if (!a[1].n) return (a[0] > b[0]);
-	//return a[1].n.localeCompare(b[1].n,undefined, {numeric: true});
-	// sort playlists first, followed by presets with characters and last presets with special 1st character
-	const c = a[1].n.charCodeAt(0);
-	const d = b[1].n.charCodeAt(0);
-	if ((c>47 && c<58) || (c>64 && c<91) || (c>96 && c<123) || c>255) x = '='; else x = '>';
-	if ((d>47 && d<58) || (d>64 && d<91) || (d>96 && d<123) || d>255) y = '='; else y = '>';
-	const n = (a[1].playlist ? '<' : x) + a[1].n;
-	return n.localeCompare((b[1].playlist ? '<' : y) + b[1].n, undefined, {numeric: true});
+  if (!a[1].n) return (a[0] > b[0]);
+  //return a[1].n.localeCompare(b[1].n,undefined, {numeric: true});
+  // sort playlists first, followed by presets with characters and last presets with special 1st character
+  const c = a[1].n.charCodeAt(0);
+  const d = b[1].n.charCodeAt(0);
+  if ((c > 47 && c < 58) || (c > 64 && c < 91) || (c > 96 && c < 123) || c > 255) x = '='; else x = '>';
+  if ((d > 47 && d < 58) || (d > 64 && d < 91) || (d > 96 && d < 123) || d > 255) y = '='; else y = '>';
+  const n = (a[1].playlist ? '<' : x) + a[1].n;
+  return n.localeCompare((b[1].playlist ? '<' : y) + b[1].n, undefined, { numeric: true });
 }
 
 //forces a WebSockets reconnect if timeout (error toast), or successful HTTP response to JSON request
 function reconnectWS() {
-	if (ws) ws.close();
-	ws = null;
-	if (lastinfo && lastinfo.ws > -1) setTimeout(makeWS,500);
+  if (ws) ws.close();
+  ws = null;
+  if (lastinfo && lastinfo.ws > -1) setTimeout(makeWS, 500);
 }
 
 function makeWS() {
-	if (ws) return;
-	ws = new WebSocket((window.location.protocol == 'https:'?'wss':'ws')+'://'+(loc?locip:window.location.hostname)+'/ws');
-	ws.binaryType = "arraybuffer";
-	ws.onmessage = function(event) {
-		if (event.data instanceof ArrayBuffer) return; //liveview packet
-		var json = JSON.parse(event.data);
-		clearTimeout(jsonTimeout);
-		jsonTimeout = null;
-		clearErrorToast();
-		d.getElementById('connind').style.backgroundColor = "#079";
-		var info = json.info;
-		d.getElementById('buttonNodes').style.display = (info.ndc > 0 && window.innerWidth > 770) ? "block":"none";
-		lastinfo = info;
-		if (isInfo) {
-			populateInfo(info);
-		}
-		s = json.state;
-		displayRover(info, s);
-		readState(json.state);
-	};
-	ws.onclose = (e)=>{
-		//if there is already a new web socket open, do not null ws
-		if (ws && ws.readyState === WebSocket.OPEN) return;
+  if (ws) return;
+  ws = new WebSocket((window.location.protocol == 'https:' ? 'wss' : 'ws') + '://' + (loc ? locip : window.location.hostname) + '/ws');
+  ws.binaryType = "arraybuffer";
+  ws.onmessage = function (event) {
+    if (event.data instanceof ArrayBuffer) return; //liveview packet
 
-		d.getElementById('connind').style.backgroundColor = "#831";
-		ws = null;
-	}
-	ws.onopen = (e)=>{
-		reqsLegal = true;
-	}
+    try {
+      var json = JSON.parse(event.data);
+    } catch {
+      showToast(error, true);
+      console.log(error);
+    }
+
+    clearTimeout(jsonTimeout);
+    jsonTimeout = null;
+    clearErrorToast();
+    d.getElementById('connind').style.backgroundColor = "#079";
+    var info = json.info;
+    // d.getElementById('buttonNodes').style.display = (info.ndc > 0 && window.innerWidth > 770) ? "none" : "none";
+    lastinfo = info;
+    if (isInfo) {
+      populateInfo(info);
+    }
+    s = json.state;
+    displayRover(info, s);
+    readState(json.state);
+  };
+  ws.onclose = (e) => {
+    //if there is already a new web socket open, do not null ws
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+
+    d.getElementById('connind').style.backgroundColor = "#831";
+    ws = null;
+  }
+  ws.onopen = (e) => {
+    reqsLegal = true;
+  }
 }
 
-function readState(s,command=false) {
+function readState(s, command = false) {
   isOn = s.on;
-  d.getElementById('sliderBri').value= s.bri;
-  d.getElementById('sliderInputLevel').value= s.inputLevel; //WLEDSR
+  d.getElementById('sliderBri').value = s.bri;
+  d.getElementById('sliderInputLevel').value = s.inputLevel; //WLEDSR
   nlA = s.nl.on;
   nlDur = s.nl.dur;
   nlTar = s.nl.tbri;
@@ -1208,15 +1399,14 @@ function readState(s,command=false) {
   prevPS = currentPreset; //WLEDSR Blazoncek default slider values
   currentPreset = s.ps;
   tr = s.transition;
-  d.getElementById('tt').value = tr/10;
+  d.getElementById('tt').value = tr / 10;
 
   if (!isInInputField) //WLEDSR: do not (re)populateSegment if editing segment
     populateSegments(s);
-  var selc=0;
-  var sellvl=0; // 0: selc is invalid, 1: selc is mainseg, 2: selc is first selected
+  var selc = 0;
+  var sellvl = 0; // 0: selc is invalid, 1: selc is mainseg, 2: selc is first selected
   hasRGB = hasWhite = hasCCT = false;
-  for (let i = 0; i < (s.seg||[]).length; i++)
-  {
+  for (let i = 0; i < (s.seg || []).length; i++) {
     if (sellvl == 0 && s.seg[i].id == s.mainseg) {
       selc = i;
       sellvl = 1;
@@ -1225,17 +1415,17 @@ function readState(s,command=false) {
       if (sellvl < 2) selc = i; // get first selected segment
       sellvl = 2;
       var lc = lastinfo.leds.seglc[s.seg[i].id];
-      hasRGB   |= lc & 0x01;
+      hasRGB |= lc & 0x01;
       hasWhite |= lc & 0x02;
-      hasCCT   |= lc & 0x04;
+      hasCCT |= lc & 0x04;
     }
   }
-  var i=s.seg[selc];
+  var i = s.seg[selc];
   if (sellvl == 1) {
     var lc = lastinfo.leds.seglc[i.id];
-    hasRGB   = lc & 0x01;
+    hasRGB = lc & 0x01;
     hasWhite = lc & 0x02;
-    hasCCT   = lc & 0x04;
+    hasCCT = lc & 0x04;
   }
   if (!i) {
     showToast('No Segments!', true);
@@ -1244,19 +1434,18 @@ function readState(s,command=false) {
   }
 
   colors = i.col;
-  for (let e = 0; e < 3; e++)
-  {
+  for (let e = 0; e < 3; e++) {
     if (i.col[e].length > 3) whites[e] = parseInt(i.col[e][3]);
     setCSL(e);
   }
   selectSlot(csel);
-  if (i.cct != null && i.cct>=0) d.getElementById("sliderA").value = i.cct;
+  if (i.cct != null && i.cct >= 0) d.getElementById("sliderA").value = i.cct;
 
   d.getElementById('sliderSpeed').value = i.sx;
   d.getElementById('sliderIntensity').value = i.ix;
-  d.getElementById('sliderCustom1').value  = i.c1x;
-  d.getElementById('sliderCustom2').value  = i.c2x;
-  d.getElementById('sliderCustom3').value  = i.c3x;
+  d.getElementById('sliderCustom1').value = i.c1x;
+  d.getElementById('sliderCustom2').value = i.c2x;
+  d.getElementById('sliderCustom3').value = i.c3x;
 
   //WLEDSR Blazoncek default slider values
   // if (!command) {
@@ -1281,7 +1470,7 @@ function readState(s,command=false) {
       case 19:
         errstr = "A filesystem error has occured.";
         break;
-      }
+    }
     showToast('Error ' + s.error + ": " + errstr, true);
   }
 
@@ -1293,83 +1482,50 @@ function readState(s,command=false) {
 }
 
 // WLEDSR: control HTML elements for Slider and Color Control
-function setEffectParameters(idx, name, effectPar, applyDef=false) {
+function setEffectParameters(idx, name, effectPar, applyDef = false) {
   var topPosition = 0;
 
-  var pcmode = localStorage.getItem('pcm') == "true";
-
-  var controlDefined = (effectPar.substr(0,1) == "@")?true:false;
+  var controlDefined = (effectPar.substr(0, 1) == "@") ? true : false;
   effectPar = effectPar.substr(1);
-  var effectPars = (effectPar == '')?[]:effectPar.split(";");
-  var slidersOnOff = (effectPars.length==0 || effectPars[0] == '')?[]:effectPars[0].split(",");
-  var colorsOnOff  = (effectPars.length<2  || effectPars[1] == '')?[]:effectPars[1].split(",");
-  var paletteOnOff = (effectPars.length<3  || effectPars[2] == '')?[]:effectPars[2].split(",");
-  var obj = {"seg":{}};
+  var effectPars = (effectPar == '') ? [] : effectPar.split(";");
+  var slidersOnOff = (effectPars.length == 0 || effectPars[0] == '') ? [] : effectPars[0].split(",");
+  var colorsOnOff = (effectPars.length < 2 || effectPars[1] == '') ? [] : effectPars[1].split(",");
+  var paletteOnOff = (effectPars.length < 3 || effectPars[2] == '') ? [] : effectPars[2].split(",");
+  var obj = { "seg": {} };
 
   // set html slider items on/off
-  for (let i=0; i<5; i++) {
+  for (let i = 0; i < 5; i++) {
     var slider = d.getElementById("slider" + i);
     var label = d.getElementById("sliderLabel" + i);
     // if (not controlDefined and for AC speed or intensity and for SR alle sliders) or slider has a value
-    if ((!controlDefined && i < ((idx<128)?2:5)) || (slidersOnOff.length>i && slidersOnOff[i] != "")) {
+    if ((!controlDefined && i < ((idx < 128) ? 2 : 5)) || (slidersOnOff.length > i && slidersOnOff[i] != "")) {
       label.style.display = "block";
 
       //WLEDSR Blazoncek default slider values
-      if (slidersOnOff.length>i && slidersOnOff[i].indexOf("=")>0) {
-				// embeded default values
-				var dPos = slidersOnOff[i].indexOf("=");
-				var v = Math.max(0,Math.min(255,parseInt(slidersOnOff[i].substr(dPos+1))));
-				if      (i==0) { if (applyDef) d.getElementById("sliderSpeed").value     = v; obj.seg.sx = v; }
-				else if (i==1) { if (applyDef) d.getElementById("sliderIntensity").value = v; obj.seg.ix = v; }
-				else           { if (applyDef) d.getElementById("sliderCustom"+(i-1)).value   = v; obj.seg["c"+(i-1)+"x"] = v}
-				slidersOnOff[i] = slidersOnOff[i].substring(0,dPos); //remove the default value
-			}
+      if (slidersOnOff.length > i && slidersOnOff[i].indexOf("=") > 0) {
+        // embeded default values
+        var dPos = slidersOnOff[i].indexOf("=");
+        var v = Math.max(0, Math.min(255, parseInt(slidersOnOff[i].substr(dPos + 1))));
+        if (i == 0) { if (applyDef) d.getElementById("sliderSpeed").value = v; obj.seg.sx = v; }
+        else if (i == 1) { if (applyDef) d.getElementById("sliderIntensity").value = v; obj.seg.ix = v; }
+        else { if (applyDef) d.getElementById("sliderCustom" + (i - 1)).value = v; obj.seg["c" + (i - 1) + "x"] = v }
+        slidersOnOff[i] = slidersOnOff[i].substring(0, dPos); //remove the default value
+      }
 
-      if (slidersOnOff.length>i && slidersOnOff[i] != "!")
+      if (slidersOnOff.length > i && slidersOnOff[i] != "!")
         label.innerHTML = slidersOnOff[i];
-      else if (i==0) label.innerHTML = "Effect speed";
-      else if (i==1) label.innerHTML = "Effect intensity";
-      else label.innerHTML = "Custom" + (i-1);
-      if (pcmode) {
-        label.style.top = topPosition + "px";
-        topPosition += 20;        // increase top position for the next control
-        label.style.zIndex = "1"; // need to be above effects when scrolling
-      }
-      else {
-        label.style.top = "auto";
-        label.style.zIndex = "0"; // need to be behind sliders when scrolling
-      }
+      else if (i == 0) label.innerHTML = "Effect speed";
+      else if (i == 1) label.innerHTML = "Effect intensity";
+      else label.innerHTML = "Custom" + (i - 1);
 
       slider.style.display = "block";
       slider.style.top = topPosition + "px";
-      topPosition += 30;          // increase top position for the next control
-      slider.setAttribute('title',label.innerHTML);
+      topPosition += 57;          // increase top position for the next control
+      slider.setAttribute('title', label.innerHTML);
     }
     else {
-      // disable label and slider
       slider.style.display = "none";
-      label.style.display = "none";
     }
-  }
-
-  var modelabel = d.getElementById("modelabel");
-  var effectsearchbar = d.getElementById("effectsearchbar");
-  effectsearchbar.style.width = '230px';  // correct staytop effect to position searchbar right
-  if (pcmode) {
-    modelabel.style.top = topPosition + "px";
-    topPosition += 20;                    // increase top position for the next control
-    modelabel.style.zIndex = "170";       // correct staytop effect, same as fx list
-
-    effectsearchbar.style.top = topPosition + "px";
-    topPosition += 40;                    // increase top position for the next control
-    effectsearchbar.style.zIndex = "170"; // correct staytop effect, same as fx list
-  }
-  else {
-    modelabel.style.top = "auto";
-    modelabel.style.zIndex = "0";         // correct staytop effect, behind sliders
-
-    effectsearchbar.style.top = "auto";
-    effectsearchbar.style.zIndex = "0";   // correct staytop effect, behind sliders
   }
 
   // set top position of the first effect (fx0=solid)
@@ -1379,11 +1535,11 @@ function setEffectParameters(idx, name, effectPar, applyDef=false) {
   // moved from index.css as top of effectlist needs to be set dynamically
   var style = d.createElement('style');
   style.innerHTML =
-  '.lstI.selected {'+
-    'background: var(--c-5);'+
-    'top: '+(topPosition+40)+'px;'+
-    'bottom: -11px;'+
-  '}';
+    '.lstI.selected {' +
+    'background: var(--c-5);' +
+    'top: ' + (topPosition + 50) + 'px;' +
+    'bottom: -11px;' +
+    '}';
   // Get the first script tag
   var ref = d.querySelector('script');
   // Insert our new styles before the first script tag
@@ -1392,26 +1548,26 @@ function setEffectParameters(idx, name, effectPar, applyDef=false) {
   // set html color items on/off
   var colorOnOffLabel = '';
   var sep = '';
-  for (let i=0; i<3; i++) {
+  for (let i = 0; i < 3; i++) {
     var button = d.getElementById("colorButton" + i);
     // if no controlDefined or colorsOnOff has a value
-    if (colorsOnOff.length>i && colorsOnOff[i] != "") {
+    if (colorsOnOff.length > i && colorsOnOff[i] != "") {
       button.style.display = "inline";
-      if (colorsOnOff.length>i && colorsOnOff[i] != "!") {
-        var abbreviation = colorsOnOff[i].substr(0,2);
+      if (colorsOnOff.length > i && colorsOnOff[i] != "!") {
+        var abbreviation = colorsOnOff[i].substr(0, 2);
         button.innerHTML = abbreviation;
         if (abbreviation != colorsOnOff[i]) {
           colorOnOffLabel += sep + abbreviation + '=' + colorsOnOff[i];
           sep = ', ';
         }
       }
-      else if (i==0) button.innerHTML = "Fx";
-      else if (i==1) button.innerHTML = "Bg";
+      else if (i == 0) button.innerHTML = "Fx";
+      else if (i == 1) button.innerHTML = "Bg";
       else button.innerHTML = "Cs";
     }
-    else if (!controlDefined || paletteOnOff.length>0) { // if no controls or palette then all buttons should be shown for color 1..3 palettes
+    else if (!controlDefined || paletteOnOff.length > 0) { // if no controls or palette then all buttons should be shown for color 1..3 palettes
       button.style.display = "inline";
-      button.innerHTML = "" + (i+1);
+      button.innerHTML = "" + (i + 1);
     }
     else {
       button.style.display = "none";
@@ -1425,25 +1581,25 @@ function setEffectParameters(idx, name, effectPar, applyDef=false) {
   // var selectPalette = d.getElementById("selectPalette");
   var pallabel = d.getElementById("paletteLabel");
   // if not controlDefined or palette has a value
-  if ((!controlDefined) || (paletteOnOff.length>0 && paletteOnOff[0] != "" && isNaN(paletteOnOff[0]))) {
+  if ((!controlDefined) || (paletteOnOff.length > 0 && paletteOnOff[0] != "" && isNaN(paletteOnOff[0]))) {
     pallist.style.display = "block";
 
-    pallabel.style.display = "block";
+    pallabel.style.display = "none";
 
     //WLEDSR Blazoncek default slider values
-    if (paletteOnOff.length>0 && paletteOnOff[0].indexOf("=")>0) {
-			// embeded default values
-			var dPos = paletteOnOff[0].indexOf("=");
-			var v = Math.max(0,Math.min(255,parseInt(paletteOnOff[0].substr(dPos+1))));
-			var p = d.querySelector(`#pallist input[name="palette"][value="${v}"]`);
-			if (applyDef && p) {
-				p.checked = true;
-				obj.seg.pal = v;
-			}
-			paletteOnOff[0] = paletteOnOff[0].substring(0,dPos);
-		}
+    if (paletteOnOff.length > 0 && paletteOnOff[0].indexOf("=") > 0) {
+      // embeded default values
+      var dPos = paletteOnOff[0].indexOf("=");
+      var v = Math.max(0, Math.min(255, parseInt(paletteOnOff[0].substr(dPos + 1))));
+      var p = d.querySelector(`#pallist input[name="palette"][value="${v}"]`);
+      if (applyDef && p) {
+        p.checked = true;
+        obj.seg.pal = v;
+      }
+      paletteOnOff[0] = paletteOnOff[0].substring(0, dPos);
+    }
 
-    if (paletteOnOff.length>0 && paletteOnOff[0] != "!")
+    if (paletteOnOff.length > 0 && paletteOnOff[0] != "!")
       pallabel.innerHTML = paletteOnOff[0];
     else
       pallabel.innerHTML = "Color palette";
@@ -1454,7 +1610,7 @@ function setEffectParameters(idx, name, effectPar, applyDef=false) {
     pallabel.style.display = "none";
 
     //WLEDSR Blazoncek default slider values
-    if (paletteOnOff.length>0 && paletteOnOff[0]!="" && !isNaN(paletteOnOff[0]) && parseInt(paletteOnOff[0])!=selectedPal) obj.seg.pal = parseInt(paletteOnOff[0]);
+    if (paletteOnOff.length > 0 && paletteOnOff[0] != "" && !isNaN(paletteOnOff[0]) && parseInt(paletteOnOff[0]) != selectedPal) obj.seg.pal = parseInt(paletteOnOff[0]);
   }
 
   // console.log("setSlider InputLevel s:"); //WLEDSR inputLevel slider debug...
@@ -1484,7 +1640,7 @@ function setEffectParameters(idx, name, effectPar, applyDef=false) {
   }
 
   // WLEDSR Blazoncek default slider values
-	if (!isEmpty(obj.seg) && applyDef) requestJson(obj); // update default values (may need throttling on ESP8266)
+  if (!isEmpty(obj.seg) && applyDef) requestJson(obj); // update default values (may need throttling on ESP8266)
 
   // console.log(name, name.substr(2,2), d.getElementById('sliderInputLevel').parentNode.getElementsByClassName('sliderdisplay')[0]);
 } //setEffectParameters
@@ -1493,263 +1649,307 @@ var jsonTimeout;
 var reqsLegal = false;
 
 function requestJson(command, rinfo = true) {
-	d.getElementById('connind').style.backgroundColor = "#a90";
-	if (command && !reqsLegal) return; //stop post requests from chrome onchange event on page restore
-	lastUpdate = new Date();
-	if (!jsonTimeout) jsonTimeout = setTimeout(showErrorToast, 3000);
-	var req = null;
+  d.getElementById('connind').style.backgroundColor = "#a90";
+  if (command && !reqsLegal) return; //stop post requests from chrome onchange event on page restore
+  lastUpdate = new Date();
+  if (!jsonTimeout) jsonTimeout = setTimeout(showErrorToast, 10000);
+  var req = null;
 
-  var url = rinfo ? '/json/si': (command ? '/json/state':'/json');
+  var url = rinfo ? '/json/si' : (command ? '/json/state' : '/json');
   if (loc) {
     url = `http://${locip}${url}`;
   }
 
-	var useWs = ((command || rinfo) && ws && ws.readyState === WebSocket.OPEN);
+  var useWs = ((command || rinfo) && ws && ws.readyState === WebSocket.OPEN);
 
-	var type = command ? 'post':'get';
-	if (command)
-	{
-		command.v = true; //get complete API response
-		command.time = Math.floor(Date.now() / 1000);
-		var t = d.getElementById('tt');
-		if (t.validity.valid && command.transition===undefined) {
-			var tn = parseInt(t.value*10);
-			if (tn != tr) command.transition = tn;
-		}
-		req = JSON.stringify(command);
-		if (req.length > 1000) useWs = false; //do not send very long requests over websocket
-	}
+  var type = command ? 'post' : 'get';
+  if (command) {
+    command.v = true; //get complete API response
+    command.time = Math.floor(Date.now() / 1000);
+    var t = d.getElementById('tt');
+    if (t.validity.valid && command.transition === undefined) {
+      var tn = parseInt(t.value * 10);
+      if (tn != tr) command.transition = tn;
+    }
+    req = JSON.stringify(command);
+    if (req.length > 1000) useWs = false; //do not send very long requests over websocket
+  }
 
-	if (useWs) {
-		ws.send(req?req:'{"v":true}');
-		return;
-	}
+  if (useWs) {
+    ws.send(req ? req : '{"v":true}');
+    return;
+  }
 
-	fetch
-	(url, {
-		method: type,
-		headers: {
-			"Content-type": "application/json; charset=UTF-8"
-		},
-		body: req
-	})
-	.then(res => {
-		if (!res.ok) {
-			showErrorToast();
-		}
-		return res.json();
-	})
-	.then(json => {
-		clearTimeout(jsonTimeout);
-		jsonTimeout = null;
-		clearErrorToast();
-		d.getElementById('connind').style.backgroundColor = "#070";
-		if (!json) {
-			showToast('Empty response', true);
-		}
-		if (json.success) {
-			return;
-		}
-		var s = json;
-		if (reqsLegal && !ws) reconnectWS();
-		if (!command || rinfo) { //we have info object
-			if (!rinfo) { //entire JSON (on load)
-				populateEffects(json.effects);
-				populatePalettes(json.palettes);
+  fetch
+    (url, {
+      method: type,
+      headers: {
+        "Content-type": "application/json; charset=UTF-8"
+      },
+      body: req
+    })
+    .then(res => {
+      if (!res.ok) {
+        showErrorToast();
+      }
+      return res.json();
+    })
+    .then(json => {
+      clearTimeout(jsonTimeout);
+      jsonTimeout = null;
+      clearErrorToast();
+      d.getElementById('connind').style.backgroundColor = "#070";
+      if (!json) {
+        showToast('Empty response', true);
+      }
+      if (json.success) {
+        return;
+      }
+      var s = json;
+      if (reqsLegal && !ws) reconnectWS();
+      if (!command || rinfo) { //we have info object
+        if (!rinfo) { //entire JSON (on load)
+          populateEffects(json.effects);
+          populatePalettes(json.palettes);
 
-				// load palette previews, presets, and open websocket sequentially
-				setTimeout(function(){
-					loadPresets(function(){
-						loadPalettesData(function(){
-							if (!ws && json.info.ws > -1) makeWS();
-						});
-					});
-				},25);
-				reqsLegal = true;
-			}
+          // load palette previews, presets, and open websocket sequentially
+          setTimeout(function () {
+            loadPresets(function () {
+              loadPalettesData(function () {
+                if (!ws && json.info.ws > -1) makeWS();
+              });
+            });
+          }, 25);
+          reqsLegal = true;
+        }
 
-			var info = json.info;
-			var name = info.name;
-			d.getElementById('namelabel').innerHTML = name;
-			if (name === "Dinnerbone") {
-				d.documentElement.style.transform = "rotate(180deg)";
-			}
-			if (info.live) {
-				name = "(Live) " + name;
-			}
-			if (loc) {
-				name = "(L) " + name;
-			}
-			d.title = name;
-			ledCount = info.leds.count;
-			syncTglRecv = info.str;
-			maxSeg = info.leds.maxseg;
-			pmt = info.fs.pmt;
-      //WLEDSR
-      somp = info.leds.somp;
-    
-      if (!command && rinfo) setTimeout(loadPresets, 99);
+        var info = json.info;
+        var name = info.name;
+        // d.getElementById('namelabel').innerHTML = name;
+        if (name === "Dinnerbone") {
+          d.documentElement.style.transform = "rotate(180deg)";
+        }
+        if (info.live) {
+          name = "(Live) " + name;
+        }
+        if (loc) {
+          name = "(L) " + name;
+        }
+        d.title = name;
+        ledCount = info.leds.count;
+        syncTglRecv = info.str;
+        maxSeg = info.leds.maxseg;
+        pmt = info.fs.pmt;
+        //WLEDSR
+        somp = info.leds.somp;
 
-			d.getElementById('buttonNodes').style.display = (info.ndc > 0 && window.innerWidth > 770) ? "block":"none";
-			lastinfo = info;
-			if (isInfo) {
-				populateInfo(info);
-			}
-			s = json.state;
-			displayRover(info, s);
-		}
+        if (!command && rinfo) setTimeout(loadPresets, 99);
 
-		readState(s,command);
-	})
-	.catch(function (error) {
-		showToast(error, true);
-		console.log(error);
-	});
+        // d.getElementById('buttonNodes').style.display = (info.ndc > 0 && window.innerWidth > 770) ? "none" : "none";
+        lastinfo = info;
+        if (isInfo) {
+          populateInfo(info);
+        }
+        s = json.state;
+        displayRover(info, s);
+      }
+
+      readState(s, command);
+    })
+    .catch(function (error) {
+      showToast(error, true);
+      console.log(error);
+    });
 }
 
 function togglePower() {
   isOn = !isOn;
-  var obj = {"on": isOn};
+  var obj = { "on": isOn };
   requestJson(obj);
 }
 
 function toggleNl() {
   nlA = !nlA;
-  if (nlA)
-  {
-    showToast(`Timer active. Your light will turn ${nlTar > 0 ? "on":"off"} ${nlMode ? "over":"after"} ${nlDur} minutes.`);
+  if (nlA) {
+    showToast(`Timer active. Your light will turn ${nlTar > 0 ? "on" : "off"} ${nlMode ? "over" : "after"} ${nlDur} minutes.`);
   } else {
     showToast('Timer deactivated.');
   }
-  var obj = {"nl": {"on": nlA}};
+  var obj = { "nl": { "on": nlA } };
   requestJson(obj);
 }
 
 function toggleSync() {
   syncSend = !syncSend;
-  if (syncSend)
-  {
+  if (syncSend) {
     showToast('Other lights in the network will now sync to this one.');
   } else {
     showToast('This light and other lights in the network will no longer sync.');
   }
-  var obj = {"udpn": {"send": syncSend}};
+  var obj = { "udpn": { "send": syncSend } };
   if (syncTglRecv) obj.udpn.recv = syncSend;
   requestJson(obj);
 }
 
 function toggleLiveview() {
   //WLEDSR adding liveview2D support
-	if (isInfo) toggleInfo();
-	if (isNodes) toggleNodes();
+  if (isInfo) toggleInfo();
+  // if (isNodes) toggleNodes();
 
-	isLv = !isLv;
+  isLv = !isLv;
 
-	var lvID = "liveview";
-	if (somp != 0) { //not 1D 
-		lvID = "liveview2D"
-		if (isLv) {
-			var cn = '<iframe id="liveview2D" src="about:blank"></iframe>';
-			d.getElementById('kliveview2D').innerHTML = cn;
-		}
+  var lvID = "liveview";
+  if (somp != 0) { //not 1D 
+    lvID = "liveview2D"
+    if (isLv) {
+      var cn = '<iframe id="liveview2D" src="about:blank"></iframe>';
+      d.getElementById('kliveview2D').innerHTML = cn;
+    }
 
-		gId('mliveview2D').style.transform = (isLv) ? "translateY(0px)":"translateY(100%)";
-	}
+    gId('mliveview2D').style.transform = (isLv) ? "translateY(0px)" : "translateY(100%)";
+  }
 
-	gId(lvID).style.display = (isLv) ? "block":"none";
-	var url = (loc?`http://${locip}`:'') + "/" + lvID;
-	gId(lvID).src = (isLv) ? url:"about:blank";
-	gId('buttonSr').className = (isLv) ? "active":"";
-	if (!isLv && ws && ws.readyState === WebSocket.OPEN) ws.send('{"lv":false}');
-	size();
+  gId(lvID).style.display = (isLv) ? "block" : "none";
+  var url = (loc ? `http://${locip}` : '') + "/" + lvID;
+  gId(lvID).src = (isLv) ? url : "about:blank";
+  gId('buttonSr').className = (isLv) ? "active" : "";
+  if (!isLv && ws && ws.readyState === WebSocket.OPEN) ws.send('{"lv":false}');
+  size();
 }
 
 function toggleInfo() {
-  if (isNodes) toggleNodes();
+  // if (isNodes) toggleNodes();
   if (isCEEditor) toggleCEEditor();// WLEDSR Custom Effects
-	if (isLv) toggleLiveview();
+  if (isLv) toggleLiveview();
+  if (isSettings) toggleSettings();
+
   isInfo = !isInfo;
   if (isInfo) populateInfo(lastinfo);
-  d.getElementById('info').style.transform = (isInfo) ? "translateY(0px)":"translateY(100%)";
-  d.getElementById('buttonI').className = (isInfo) ? "active":"";
+  d.getElementById('info').style.transform = (isInfo) ? "translateY(0px)" : "translateY(100%)";
+  d.getElementById('buttonI').className = (isInfo) ? "active" : "";
+
+  if (!isInfo && window.innerWidth <= 685) {
+    toggleLiveview();
+  }
 }
 
-function toggleNodes() {
-  if (isInfo) toggleInfo();
+function toggleSettings() {
+  // if (isNodes) toggleNodes();
   if (isCEEditor) toggleCEEditor();// WLEDSR Custom Effects
-	if (isLv) toggleLiveview();
-  isNodes = !isNodes;
-  d.getElementById('nodes').style.transform = (isNodes) ? "translateY(0px)":"translateY(100%)";
-  d.getElementById('buttonNodes').className = (isNodes) ? "active":"";
-  if (isNodes) loadNodes();
+  if (isLv) toggleLiveview();
+  if (isInfo) toggleInfo();
+
+  isSettings = !isSettings;
+
+  d.getElementById('settingsmodal').style.transform = (isSettings) ? "translateY(0px)" : "translateY(100%)";
+  d.getElementById('buttonS').className = (isSettings) ? "active" : "";
+
+  if (!isSettings && window.innerWidth <= 685) {
+    toggleLiveview();
+  }
 }
+
+// function toggleNodes() {
+//   if (isInfo) toggleInfo();
+//   if (isCEEditor) toggleCEEditor();// WLEDSR Custom Effects
+//   if (isLv) toggleLiveview();
+
+//   isNodes = !isNodes;
+//   d.getElementById('nodes').style.transform = (isNodes) ? "translateY(0px)" : "translateY(100%)";
+//   d.getElementById('buttonNodes').className = (isNodes) ? "active" : "";
+//   if (isNodes) loadNodes();
+
+//   if (isSettings) toggleSettings();
+// }
 
 // WLEDSR Custom Effects
 function toggleCEEditor(name, segID) {
   if (isInfo) toggleInfo();
-  if (isNodes) toggleNodes();
+  // if (isNodes) toggleNodes();
+
   isCEEditor = !isCEEditor;
   if (isCEEditor) populateCEEditor(name, segID);
-  d.getElementById('ceEditor').style.transform = (isCEEditor) ? "translateY(0px)":"translateY(100%)";
+  d.getElementById('ceEditor').style.transform = (isCEEditor) ? "translateY(0px)" : "translateY(100%)";
+
+  if (isSettings) toggleSettings();
 }
 
 function makeSeg() {
   var ns = 0;
   if (lowestUnused > 0) {
-    var pend = parseInt(d.getElementById(`seg${lowestUnused -1}e`).value,10) + (cfg.comp.seglen?parseInt(d.getElementById(`seg${lowestUnused -1}s`).value,10):0);
+    var pend = parseInt(d.getElementById(`seg${lowestUnused - 1}e`).value, 10) + (cfg.comp.seglen ? parseInt(d.getElementById(`seg${lowestUnused - 1}s`).value, 10) : 0);
     if (pend < ledCount) ns = pend;
   }
-    //WLEDSR: table class changed from segt to infot. move Apply text and setSeg(${lowestUnused}) into the <table> instead of below the table and using absolute positions (sounds like improvement for AC as well)
-    var cn = `<div class="seg">
-      <div class="segname newseg">
-        New segment ${lowestUnused}
-        <i class="icons edit-icon expanded" onclick="tglSegn(${lowestUnused})">&#xe2c6;</i>
-      </div>
-      <br>
+  //WLEDSR: table class changed from segt to infot. move Apply text and setSeg(${lowestUnused}) into the <table> instead of below the table and using absolute positions (sounds like improvement for AC as well)
+  var cn = `<div class="seg">
+      <p class="input-label">Segment Name</p>
       <div class="segin expanded">
         <input type="text" class="ptxt stxt noslide" id="seg${lowestUnused}t" autocomplete="off" maxlength=32 value="" placeholder="Enter name..."/>
-        <table class="infot">
+        <table class="infot3">
           <tr>
-            <td class="segtd">Start LED</td>
-            <td class="segtd">${cfg.comp.seglen?"Length":"Stop LED"}</td>
-            <td class="segtd">Apply</td>
+            <td></td>
+            <td class="segtd input-label">Start LED</td>
+            <td></td>
+            <td class="segtd input-label">${cfg.comp.seglen ? "Length" : "Stop LED"}</td>
+            <td></td>
           </tr>
           <tr>
-            <td class="segtd"><input class="noslide segn" id="seg${lowestUnused}s" type="number" min="0" max="${ledCount-1}" value="${ns}" oninput="updateLen(${lowestUnused})" onkeydown="segEnter(${lowestUnused})"></td>
-            <td class="segtd"><input class="noslide segn" id="seg${lowestUnused}e" type="number" min="0" max="${ledCount-(cfg.comp.seglen?ns:0)}" value="${ledCount-(cfg.comp.seglen?ns:0)}" oninput="updateLen(${lowestUnused})" onkeydown="segEnter(${lowestUnused})"></td>
-            <td class="segtd"><i class="icons e-icon cnf" id="segc${lowestUnused}" onclick="setSeg(${lowestUnused}); resetUtil();">&#xe390;</i></td>
+            <td></td>
+            <td class="segtd"><input class="noslide segn" id="seg${lowestUnused}s" type="number" min="0" max="${ledCount - 1}" value="${ns}" oninput="updateLen(${lowestUnused})" onkeydown="segEnter(${lowestUnused})"></td>
+            <td></td>
+            <td class="segtd"><input class="noslide segn" id="seg${lowestUnused}e" type="number" min="0" max="${ledCount - (cfg.comp.seglen ? ns : 0)}" value="${ledCount - (cfg.comp.seglen ? ns : 0)}" oninput="updateLen(${lowestUnused})" onkeydown="segEnter(${lowestUnused})"></td>
+            <!-- <td class="segtd"><i class="icons e-icon cnf" id="segc${lowestUnused}" onclick="setSeg(${lowestUnused}); resetUtil();">&#xe390;</i></td> -->
+            <td></td>
           </tr>
         </table>
-        <div class="h" id="seg${lowestUnused}len">${ledCount - ns} LED${ledCount - ns >1 ? "s":""}</div>
+        <div class="h" id="seg${lowestUnused}len">${ledCount - ns} LED${ledCount - ns > 1 ? "s" : ""}</div>
       </div>
     </div>`;
-  d.getElementById('segutil').innerHTML = cn;
+  d.getElementById('segutil3').innerHTML = cn;
+  d.getElementById('segutil').innerHTML = `
+  <div class="cancel-save-segment-button-container">
+    <button class="cancel-button" onclick="resetUtil();">
+        Cancel
+    </button>
+    <button class="save-segment-button" id="segc${lowestUnused}" onclick="setSeg(${lowestUnused}); resetUtil();">
+      Save Segment
+    </button>
+  </div>`;
 }
 
 function resetUtil() {
-  var cn = `<button class="btn btn-s btn-i" onclick="makeSeg()"><i class="icons btn-icon">&#xe18a;</i>Add segment</button><br>`;
+  var cn = `
+  <div class="add-segment-button-container">
+      <button class="add-segment-button"  onclick="makeSeg()">
+          Add Segment
+      </button>
+  </div>
+  `;
   d.getElementById('segutil').innerHTML = cn;
+  d.getElementById('segutil3').innerHTML = '';
 }
 
-var plJson = {"0":{
-  "ps": [0],
-  "dur": [100],
-  "transition": [-1], // to be inited to default transition dur
-  "repeat": 0,
-  "r": false,
-  "end": 0
-}};
+var plJson = {
+  "0": {
+    "ps": [0],
+    "dur": [100],
+    "transition": [-1], // to be inited to default transition dur
+    "repeat": 0,
+    "r": false,
+    "end": 0
+  }
+};
 
-function makePlSel(incPl=false) {
-	var plSelContent = "";
-	delete pJson["0"];	// remove filler preset
-	var arr = Object.entries(pJson);
-	for (var i = 0; i < arr.length; i++) {
-		var n = arr[i][1].n ? arr[i][1].n : "Preset " + arr[i][0];
-		if (!incPl && arr[i][1].playlist && arr[i][1].playlist.ps) continue; //remove playlists, sub-playlists not yet supported
-		plSelContent += `<option value=${arr[i][0]}>${n}</option>`
-	}
-	return plSelContent;
+function makePlSel(incPl = false) {
+  var plSelContent = "";
+  delete pJson["0"];	// remove filler preset
+  var arr = Object.entries(pJson);
+  for (var i = 0; i < arr.length; i++) {
+    var n = arr[i][1].n ? arr[i][1].n : "Preset " + arr[i][0];
+    if (!incPl && arr[i][1].playlist && arr[i][1].playlist.ps) continue; //remove playlists, sub-playlists not yet supported
+    plSelContent += `<option value=${arr[i][0]}>${n}</option>`
+  }
+  return plSelContent;
 }
 
 function refreshPlE(p) {
@@ -1757,13 +1957,13 @@ function refreshPlE(p) {
   if (!plEDiv) return;
   var content = "";
   for (var i = 0; i < plJson[p].ps.length; i++) {
-    content += makePlEntry(p,i);
+    content += makePlEntry(p, i);
   }
   plEDiv.innerHTML = content;
   var dels = plEDiv.getElementsByClassName("btn-pl-del");
   if (dels.length < 2) dels[0].style.display = "none";
 
-  var sels = d.getElementById(`seg${p+100}`).getElementsByClassName("sel");
+  var sels = d.getElementById(`seg${p + 100}`).getElementsByClassName("sel");
   for (var i of sels) {
     if (i.dataset.val) {
       if (parseInt(i.dataset.val) > 0) i.value = i.dataset.val;
@@ -1773,33 +1973,41 @@ function refreshPlE(p) {
 }
 
 // p: preset ID, i: ps index
-function addPl(p,i) {
-  plJson[p].ps.splice(i+1,0,0);
-  plJson[p].dur.splice(i+1,0,plJson[p].dur[i]);
-  plJson[p].transition.splice(i+1,0,plJson[p].transition[i]);
+function addPl(p, i) {
+  plJson[p].ps.splice(i + 1, 0, 0);
+  plJson[p].dur.splice(i + 1, 0, plJson[p].dur[i]);
+  plJson[p].transition.splice(i + 1, 0, plJson[p].transition[i]);
   refreshPlE(p);
 }
 
-function delPl(p,i) {
+function delPl(p, i) {
   if (plJson[p].ps.length < 2) return;
-  plJson[p].ps.splice(i,1);
-  plJson[p].dur.splice(i,1);
-  plJson[p].transition.splice(i,1);
+  plJson[p].ps.splice(i, 1);
+  plJson[p].dur.splice(i, 1);
+  plJson[p].transition.splice(i, 1);
   refreshPlE(p);
 }
 
-function plePs(p,i,field) {
+function plePs(p, i, field) {
   plJson[p].ps[i] = parseInt(field.value);
 }
 
-function pleDur(p,i,field) {
-  if (field.validity.valid)
-    plJson[p].dur[i] = Math.floor(field.value*10);
+function closeSideNav() {
+  document.getElementById("side-bar-hypnotik").style.display = "none";
 }
 
-function pleTr(p,i,field) {
+function openSideNav() {
+  document.getElementById("side-bar-hypnotik").style.display = "flex";
+}
+
+function pleDur(p, i, field) {
   if (field.validity.valid)
-    plJson[p].transition[i] = Math.floor(field.value*10);
+    plJson[p].dur[i] = Math.floor(field.value * 10);
+}
+
+function pleTr(p, i, field) {
+  if (field.validity.valid)
+    plJson[p].transition[i] = Math.floor(field.value * 10);
 }
 
 function plR(p) {
@@ -1816,262 +2024,339 @@ function plR(p) {
   }
 }
 
-function makeP(i,pl) {
-	var content = "";
-	if (pl) {
-		var rep = plJson[i].repeat ? plJson[i].repeat : 0;
+function makeP(i, pl) {
+  var content = "";
+  if (pl) {
+    var rep = plJson[i].repeat ? plJson[i].repeat : 0;
     //WLEDSR: change qltxt to maxlength=3 (from 2, for HB effects)
-		content = `<div class="first c">Playlist Entries</div>
-<div id="ple${i}"></div>
-<label class="check revchkl">
-	Shuffle
-	<input type="checkbox" id="pl${i}rtgl" onchange="plR(${i})" ${plJson[i].r?"checked":""}>
-	<span class="checkmark schk"></span>
-</label>
-<label class="check revchkl">
-	Repeat indefinitely
-	<input type="checkbox" id="pl${i}rptgl" onchange="plR(${i})" ${rep?"":"checked"}>
-	<span class="checkmark schk"></span>
-</label>
-<div id="pl${i}o1" style="display:${rep?"block":"none"}">
-	<div class="c">Repeat <input class="noslide" type="number" id="pl${i}rp" oninput="plR(${i})" max=127 min=0 value=${rep>0?rep:1}> times</div>
-	End preset:<br>
-	<select class="btn sel sel-ple" id="pl${i}selEnd" onchange="plR(${i})" data-val=${plJson[i].end?plJson[i].end:0}>
-		<option value=0>None</option>
-		${makePlSel(true)}
-	</select>
-</div>
-<button class="btn btn-i btn-p" onclick="testPl(${i}, this)"><i class='icons btn-icon'>&#xe139;</i>Test</button>`;
-	}
-	else content = `<label class="check revchkl">
-	Include brightness
-	<input type="checkbox" id="p${i}ibtgl" checked>
-	<span class="checkmark schk"></span>
-</label>
-<label class="check revchkl">
-	Save segment bounds
-	<input type="checkbox" id="p${i}sbtgl" checked>
-	<span class="checkmark schk"></span>
-</label>`;
+    content = `
+    <div class="first c">Playlist Entries</div>
+    <div id="ple${i}"></div>
 
-	return `<input type="text" class="ptxt noslide" id="p${i}txt" autocomplete="off" maxlength=32 value="${(i>0)?pName(i):""}" placeholder="Enter name..."/><br>
-<div class="c">Quick load label: <input type="text" class="qltxt noslide" maxlength=3 value="${qlName(i)}" id="p${i}ql" autocomplete="off"/></div>
-<div class="h">(leave empty for no Quick load button)</div>
-<div ${pl&&i==0?"style='display:none'":""}>
-	<label class="check revchkl">
-		${pl?"Show playlist editor":(i>0)?"Overwrite with state":"Use current state"}
-		<input type="checkbox" id="p${i}cstgl" onchange="tglCs(${i})" ${(i==0||pl)?"checked":""}>
-		<span class="checkmark schk"></span>
-	</label><br>
-</div>
-<div class="po2" id="p${i}o2">
-	API command<br>
-	<textarea class="noslide" id="p${i}api"></textarea>
-</div>
-<div class="po1" id="p${i}o1">
-	${content}
-</div>
-<div class="c">Save to ID <input class="noslide" id="p${i}id" type="number" oninput="checkUsed(${i})" max=250 min=1 value=${(i>0)?i:getLowestUnusedP()}></div>
-<div class="c">
-	<button class="btn btn-i btn-p" onclick="saveP(${i},${pl})"><i class="icons btn-icon">&#xe390;</i>Save ${(pl)?"playlist":(i>0)?"changes":"preset"}</button>
-	${(i>0)?'<button class="btn btn-i btn-p" id="p'+i+'del" onclick="delP('+i+')"><i class="icons btn-icon">&#xe037;</i>Delete '+(pl?"playlist":"preset"):
-	'<button class="btn btn-p" onclick="resetPUtil()">Cancel'}</button>
-</div>
-<div class="pwarn ${(i>0)?"bp":""} c" id="p${i}warn">
+    <div class="revchkl">
+      <label class="check">
+        <input type="checkbox" id="pl${i}rtgl" onchange="plR(${i})" ${plJson[i].r ? "checked" : ""}>
+        <span class="checkmark schk"></span>
+      </label>
+      <p>Shuffle</p>
+    </div>
 
-</div>
-${(i>0)? ('<div class="h">ID ' +i+ '</div>'):""}`;
+    <div class="revchkl">
+      <label class="check">
+        <input type="checkbox" id="pl${i}rptgl" onchange="plR(${i})" ${rep ? "" : "checked"}>
+        <span class="checkmark schk"></span>
+      </label>
+      <p>Repeat Indefinitely</p>
+    </div>
+
+    <div id="pl${i}o1" style="display:${rep ? "block" : "none"}">
+      <div class="c">Repeat <input class="noslide" type="number" id="pl${i}rp" oninput="plR(${i})" max=127 min=0 value=${rep > 0 ? rep : 1}> times</div>
+      End preset:<br>
+      <select class="btn sel sel-ple" id="pl${i}selEnd" onchange="plR(${i})" data-val=${plJson[i].end ? plJson[i].end : 0}>
+        <option value=0>None</option>
+        ${makePlSel(true)}
+      </select>
+    </div>
+
+    <table>
+      <tr>
+        <td style="width:50%;">
+          <p class="input-label">Save to ID</p>
+          <input class="noslide" id="p${i}id" type="number" oninput="checkUsed(${i})" max=250 min=1 value=${(i > 0) ? i : getLowestUnusedP()} style="text-align:left;">
+        </td>
+        <td style="display: flex;width: 100%;justify-content:end;">
+          <button class="btn btn-i btn-p test-playlist-button" onclick="testPl(${i}, this)">
+          <span style="background-color: #FF1C1C;display:flex;flex-direction:row;justify-content:center;align-items:center;width:22px;height:22px;border-radius:50%;margin:5px 5px 0 0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12" fill="none">
+            <path d="M10 4.01795C11.3333 4.78775 11.3333 6.71225 10 7.48205L3.625 11.1627C2.29166 11.9325 0.624999 10.9702 0.624999 9.43061L0.624999 2.06939C0.624999 0.529787 2.29167 -0.432461 3.625 0.337339L10 4.01795Z" fill="black"/>
+            </svg>
+          </span>
+          Test
+          </button>
+        </td>
+      </tr>
+    </table>
+  `;
+  } else content = `
+    <div class="revchkl">
+      <label class="check">
+        <input type="checkbox" id="p${i}ibtgl" checked>
+        <span class="checkmark schk"></span>
+      </label>
+      <p>Include Brightness</p>
+    </div>
+
+
+    <div class="revchkl">
+      <label class="check">
+        <input type="checkbox" id="p${i}sbtgl" checked>
+        <span class="checkmark schk"></span>
+      </label>
+      <p>Save Segment Bounds</p>
+    </div>
+    <p class="input-label">Save to ID</p>
+    <input class="noslide" id="p${i}id" type="number" oninput="checkUsed(${i})" max=250 min=1 value=${(i > 0) ? i : getLowestUnusedP()} style="text-align:left;">
+    `;
+
+  return `
+    <p class="input-label">${(pl) ? "Playlist Name" : "Preset Name"}</p>
+    <input type="text" class="ptxt noslide" id="p${i}txt" autocomplete="off" maxlength=32 value="${(i > 0) ? pName(i) : ""}" placeholder="Enter name..."/><br>
+    <p class="input-label">Quick load label: <input type="text" class="qltxt noslide" maxlength=3 value="${qlName(i)}" id="p${i}ql" autocomplete="off" placeholder="Type"/></p>
+    <p class="input-label">Leave Empty for no Quick Load Button</p>
+
+    <div ${pl && i == 0 ? "style='display:none'" : ""}>
+      <div class="revchkl">
+        <label class="check">
+          <input type="checkbox" id="p${i}cstgl" onchange="tglCs(${i})" ${(i == 0 || pl) ? "checked" : ""}>
+          <span class="checkmark schk"></span>
+        </label>
+        <p>${pl ? "Show playlist editor" : (i > 0) ? "Overwrite with state" : "Use current state"}</p>
+      </div>
+    </div>
+
+    <div class="po2" id="p${i}o2">
+      <p class="input-label">API command</p>
+      <textarea class="noslide" id="p${i}api"></textarea>
+    </div>
+
+    <div class="po1" id="p${i}o1">
+      ${content}
+    </div>
+
+    <div class="pwarn ${(i > 0) ? "bp" : ""} c" id="p${i}warn">
+
+    </div>
+
+    ${(i > 0) ? ('<div class="h" style="display:none;">ID ' + i + '</div>') : ""}
+
+    </div>
+  </div>
+
+    <div class="cancel-save-segment-button-container">
+      ${(i > 0) ? '<button class="cancel-button delete-preset-button" id="p' + i + 'del" onclick="delP(' + i + ')">Delete ' + (pl ? "Playlist" : "Preset") : '<button class="cancel-button" onclick="resetPUtil()">Cancel'}</button>
+
+      <button class="save-segment-button" onclick="saveP(${i},${pl});expand(${i + 100})">
+        Save ${(pl) ? "Playlist" : (i > 0) ? "Changes" : "Preset"}
+      </button>
+    </div>
+  `
+    ;
 }
 
 function makePUtil() {
-	d.getElementById('putil').innerHTML = `<div class="pres">
-	<div class="pname newseg">
-		New preset</div>
-	<div class="segin expanded">
-	${makeP(0)}</div></div>`;
+  d.getElementById('putil').innerHTML = `
+  <div class="pres">
+    <div class="pname newseg">
+      New preset</div>
+    <div class="segin expanded">
+      ${makeP(0)}
+  `;
 }
 
-function makePlEntry(p,i) {
-	return `
+function makePlEntry(p, i) {
+  return `
 	<div class="plentry">
 		<select class="btn sel sel-pl" onchange="plePs(${p},${i},this)" data-val=${plJson[p].ps[i]} data-index=${i}>
 		${makePlSel()}
 		</select>
-		<button class="xxs btn btn-pl-del" onclick="delPl(${p},${i})"><i class="icons no-margin">&#xe037;</i></button>
-		<div class="h plnl">Duration</div><div class="h plnl">Transition</div><div class="h pli">#${i+1}</div><br>
-		<input class="noslide pln" type="number" max=6553.0 min=0.2 step=0.1 oninput="pleDur(${p},${i},this)" value=${plJson[p].dur[i]/10.0}>
-		<input class="noslide pln" type="number" max=65.0 min=0.0 step=0.1 oninput="pleTr(${p},${i},this)" value=${plJson[p].transition[i]/10.0}> s
-		<button class="xxs btn btn-pl-add" onclick="addPl(${p},${i})"><i class="icons no-margin">&#xe18a;</i></button>
+
+    <table>
+      <tr>
+        <td class="segtd"><div class="h plnl">Duration</div></td>
+        <td></td>
+        <td class="segtd"><div class="h plnl">Transition</div></td>
+        <td></td>
+        <td class="segtd"><div class="h pli">#${i + 1}</div></td>
+      </tr>
+      <tr>
+        
+        <td class="segtd"><input class="noslide pln" type="number" max=6553.0 min=0.2 step=0.1 oninput="pleDur(${p},${i},this)" value=${plJson[p].dur[i] / 10.0}></td>
+        <td></td>
+        <td class="segtd"><input class="noslide pln" type="number" max=65.0 min=0.0 step=0.1 oninput="pleTr(${p},${i},this)" value=${plJson[p].transition[i] / 10.0}></td>
+        <td></td>
+        <td class="segtd">
+          <button class="btn-pl-add" onclick="addPl(${p},${i})"><i class="icons no-margin">&#xe18a;</i></button>
+        </td>
+      </tr>
+    
+    </table>
+
+		<button class="btn-pl-del" onclick="delPl(${p},${i})"><i class="icons no-margin">&#xe037;</i></button>
+		
 		<div class="hrz"></div>
 	</div>`;
 }
 
 function makePlUtil() {
-	if (pNum < 1) {
-		showToast("Please make a preset first!"); return;
-	}
-	if (plJson[0].transition[0] < 0) plJson[0].transition[0] = tr;
-	d.getElementById('putil').innerHTML = `<div class="pres">
+  if (pNum < 1) {
+    showToast("Please make a preset first!"); return;
+  }
+  if (plJson[0].transition[0] < 0) plJson[0].transition[0] = tr;
+  d.getElementById('putil').innerHTML = `<div class="pres">
 	<div class="pname newseg">
 		New playlist</div>
 	<div class="segin expanded" id="seg100">
-	${makeP(0,true)}</div></div>`;
-	refreshPlE(0);
+	${makeP(0, true)}`;
+  refreshPlE(0);
 }
 
 function resetPUtil() {
-	var cn = `<button class="btn btn-s btn-i" onclick="makePUtil()"><i class="icons btn-icon">&#xe18a;</i>Create preset</button><br>
-<button class="btn btn-s btn-i" onclick="makePlUtil()"><i class='icons btn-icon'>&#xe139;</i>Create playlist</button><br>`;
-	d.getElementById('putil').innerHTML = cn;
+  var cn = `
+  <div class="add-segment-button-container create-preset-button-container">
+      <button class="add-segment-button"  onclick="makePUtil()">
+          Create Preset
+      </button>
+  </div>
+  <div class="add-segment-button-container">
+      <button class="reset-segment-button"  onclick="makePlUtil()">
+          Create Playlist
+      </button>
+  </div>
+`;
+  d.getElementById('putil').innerHTML = cn;
 }
 
-function tglCs(i){
+function tglCs(i) {
   var pss = d.getElementById(`p${i}cstgl`).checked;
-  d.getElementById(`p${i}o1`).style.display = pss? "block" : "none";
-  d.getElementById(`p${i}o2`).style.display = !pss? "block" : "none";
+  d.getElementById(`p${i}o1`).style.display = pss ? "block" : "none";
+  d.getElementById(`p${i}o2`).style.display = !pss ? "block" : "none";
 }
 
-function tglSegn(s)
-{
-	d.getElementById(`seg${s}t`).style.display =
-		(window.getComputedStyle(d.getElementById(`seg${s}t`)).display === "none") ? "inline":"none";
+function tglSegn(s) {
+  d.getElementById(`seg${s}t`).style.display =
+    (window.getComputedStyle(d.getElementById(`seg${s}t`)).display === "none") ? "inline" : "none";
 }
 
 // Select only the clicked segment and unselect all others
-function selSegEx(s)
-{
-	var obj = {"seg":[]};
-	for (let i=0; i<=lSeg; i++) obj.seg.push({"id":i,"sel":(i==s)});
-	// optionally, force mainseg to be first selected
-	// WLED internally regards the first selected as mainseg regardless of this as long as any segment is selected
-	//obj.mainseg = s;
-	requestJson(obj);
+function selSegEx(s) {
+  var obj = { "seg": [] };
+  for (let i = 0; i <= lSeg; i++) obj.seg.push({ "id": i, "sel": (i == s) });
+  // optionally, force mainseg to be first selected
+  // WLED internally regards the first selected as mainseg regardless of this as long as any segment is selected
+  //obj.mainseg = s;
+  requestJson(obj);
 }
 
-function selSeg(s){
+function selSeg(s) {
   var sel = d.getElementById(`seg${s}sel`).checked;
-  var obj = {"seg": {"id": s, "sel": sel}};
+  var obj = { "seg": { "id": s, "sel": sel } };
   requestJson(obj, false);
 }
 
-function rptSeg(s)
-{
-	var name = d.getElementById(`seg${s}t`).value;
-	var start = parseInt(d.getElementById(`seg${s}s`).value);
-	var stop = parseInt(d.getElementById(`seg${s}e`).value);
-	if (stop == 0) return;
-	var rev = d.getElementById(`seg${s}rev`).checked;
-	var mi = d.getElementById(`seg${s}mi`).checked;
-	var sel = d.getElementById(`seg${s}sel`).checked;
-	var obj = {"seg": {"id": s, "n": name, "start": start, "stop": (cfg.comp.seglen?start:0)+stop, "rev": rev, "mi": mi, "on": powered[s], "bri": parseInt(d.getElementById(`seg${s}bri`).value), "sel": sel}};
-	if (d.getElementById(`seg${s}grp`)) {
-		var grp = parseInt(d.getElementById(`seg${s}grp`).value);
-		var spc = parseInt(d.getElementById(`seg${s}spc`).value);
-		var ofs = parseInt(d.getElementById(`seg${s}of` ).value);
-		obj.seg.grp = grp;
-		obj.seg.spc = spc;
-		obj.seg.of  = ofs;
-	}
-	obj.seg.rpt = true;
-	expand(s);
-	requestJson(obj);
+function rptSeg(s) {
+  var name = d.getElementById(`seg${s}t`).value;
+  var start = parseInt(d.getElementById(`seg${s}s`).value);
+  var stop = parseInt(d.getElementById(`seg${s}e`).value);
+  if (stop == 0) return;
+  var rev = d.getElementById(`seg${s}rev`).checked;
+  var mi = d.getElementById(`seg${s}mi`).checked;
+  var sel = d.getElementById(`seg${s}sel`).checked;
+  var obj = { "seg": { "id": s, "n": name, "start": start, "stop": (cfg.comp.seglen ? start : 0) + stop, "rev": rev, "mi": mi, "on": powered[s], "bri": parseInt(d.getElementById(`seg${s}bri`).value), "sel": sel } };
+  if (d.getElementById(`seg${s}grp`)) {
+    var grp = parseInt(d.getElementById(`seg${s}grp`).value);
+    var spc = parseInt(d.getElementById(`seg${s}spc`).value);
+    var ofs = parseInt(d.getElementById(`seg${s}of`).value);
+    obj.seg.grp = grp;
+    obj.seg.spc = spc;
+    obj.seg.of = ofs;
+  }
+  obj.seg.rpt = true;
+  expand(s);
+  requestJson(obj);
 }
 
-function rptSeg(s)
-{
-	var name = d.getElementById(`seg${s}t`).value;
-	var start = parseInt(d.getElementById(`seg${s}s`).value);
-	var stop = parseInt(d.getElementById(`seg${s}e`).value);
-	if (stop == 0) return;
-	var rev = d.getElementById(`seg${s}rev`).checked;
-	var mi = d.getElementById(`seg${s}mi`).checked;
-	var sel = d.getElementById(`seg${s}sel`).checked;
-	var obj = {"seg": {"id": s, "n": name, "start": start, "stop": (cfg.comp.seglen?start:0)+stop, "rev": rev, "mi": mi, "on": powered[s], "bri": parseInt(d.getElementById(`seg${s}bri`).value), "sel": sel}};
-	if (d.getElementById(`seg${s}grp`)) {
-		var grp = parseInt(d.getElementById(`seg${s}grp`).value);
-		var spc = parseInt(d.getElementById(`seg${s}spc`).value);
-		var ofs = parseInt(d.getElementById(`seg${s}of` ).value);
-		obj.seg.grp = grp;
-		obj.seg.spc = spc;
-		obj.seg.of  = ofs;
-	}
-	obj.seg.rpt = true;
-	expand(s);
-	requestJson(obj);
+function rptSeg(s) {
+  var name = d.getElementById(`seg${s}t`).value;
+  var start = parseInt(d.getElementById(`seg${s}s`).value);
+  var stop = parseInt(d.getElementById(`seg${s}e`).value);
+  if (stop == 0) return;
+  var rev = d.getElementById(`seg${s}rev`).checked;
+  var mi = d.getElementById(`seg${s}mi`).checked;
+  var sel = d.getElementById(`seg${s}sel`).checked;
+  var obj = { "seg": { "id": s, "n": name, "start": start, "stop": (cfg.comp.seglen ? start : 0) + stop, "rev": rev, "mi": mi, "on": powered[s], "bri": parseInt(d.getElementById(`seg${s}bri`).value), "sel": sel } };
+  if (d.getElementById(`seg${s}grp`)) {
+    var grp = parseInt(d.getElementById(`seg${s}grp`).value);
+    var spc = parseInt(d.getElementById(`seg${s}spc`).value);
+    var ofs = parseInt(d.getElementById(`seg${s}of`).value);
+    obj.seg.grp = grp;
+    obj.seg.spc = spc;
+    obj.seg.of = ofs;
+  }
+  obj.seg.rpt = true;
+  expand(s);
+  requestJson(obj);
 }
 
-function setSeg(s){
-	var name  = d.getElementById(`seg${s}t`).value;
-	var start = parseInt(d.getElementById(`seg${s}s`).value);
-	var stop  = parseInt(d.getElementById(`seg${s}e`).value);
-	if ((cfg.comp.seglen && stop == 0) || (!cfg.comp.seglen && stop <= start)) {delSeg(s); return;}
-	var obj = {"seg": {"id": s, "n": name, "start": start, "stop": (cfg.comp.seglen?start:0)+stop}};
-	if (d.getElementById(`seg${s}grp`))
-	{
-		var grp = parseInt(d.getElementById(`seg${s}grp`).value);
-		var spc = parseInt(d.getElementById(`seg${s}spc`).value);
-		var ofs = parseInt(d.getElementById(`seg${s}of` ).value);
-		obj.seg.grp = grp;
-		obj.seg.spc = spc;
-		obj.seg.of  = ofs;
-	}
-	requestJson(obj);
+function setSeg(s) {
+  var name = d.getElementById(`seg${s}t`).value;
+  var start = parseInt(d.getElementById(`seg${s}s`).value);
+  var stop = parseInt(d.getElementById(`seg${s}e`).value);
+  if ((cfg.comp.seglen && stop == 0) || (!cfg.comp.seglen && stop <= start)) { delSeg(s); return; }
+  var obj = { "seg": { "id": s, "n": name, "start": start, "stop": (cfg.comp.seglen ? start : 0) + stop } };
+  if (d.getElementById(`seg${s}grp`)) {
+    var grp = parseInt(d.getElementById(`seg${s}grp`).value);
+    var spc = parseInt(d.getElementById(`seg${s}spc`).value);
+    var ofs = parseInt(d.getElementById(`seg${s}of`).value);
+    obj.seg.grp = grp;
+    obj.seg.spc = spc;
+    obj.seg.of = ofs;
+  }
+  requestJson(obj);
 }
 
-function delSeg(s){
+function delSeg(s) {
   if (segCount < 2) {
     showToast("You need to have multiple segments to delete one!");
     return;
   }
   expanded[s] = false;
   segCount--;
-  var obj = {"seg": {"id": s, "stop": 0}};
+  var obj = { "seg": { "id": s, "stop": 0 } };
   requestJson(obj, false);
 }
 
-function setRev(s){
+function setRev(s) {
   var rev = d.getElementById(`seg${s}rev`).checked;
-  var obj = {"seg": {"id": s, "rev": rev}};
+  var obj = { "seg": { "id": s, "rev": rev } };
   requestJson(obj, false);
 }
 
-function setrev2D(s){
+function setrev2D(s) {
   var rev2D = d.getElementById(`seg${s}rev2D`).checked;
-  var obj = {"seg": {"id": s, "rev2D": rev2D}};
+  var obj = { "seg": { "id": s, "rev2D": rev2D } };
   requestJson(obj, false);
 }
 
-function setMi(s){
+function setMi(s) {
   var mi = d.getElementById(`seg${s}mi`).checked;
-  var obj = {"seg": {"id": s, "mi": mi}};
+  var obj = { "seg": { "id": s, "mi": mi } };
   requestJson(obj, false);
 }
 
-function setRot2D(s){
+function setRot2D(s) {
   var rot2D = d.getElementById(`seg${s}rot2D`).checked;
-  var obj = {"seg": {"id": s, "rot2D": rot2D}};
+  var obj = { "seg": { "id": s, "rot2D": rot2D } };
   requestJson(obj, false);
 }
 
-function setSegPwr(s){
-  var obj = {"seg": {"id": s, "on": !powered[s]}};
+function setSegPwr(s) {
+  var obj = { "seg": { "id": s, "on": !powered[s] } };
   requestJson(obj);
 }
 
-function setSegBri(s){
-  var obj = {"seg": {"id": s, "bri": parseInt(d.getElementById(`seg${s}bri`).value)}};
+function setSegBri(s) {
+  var obj = { "seg": { "id": s, "bri": parseInt(d.getElementById(`seg${s}bri`).value) } };
   requestJson(obj);
 }
 
-function tglFreeze(s=null)
-{
-	var obj = {"seg": {"frz": "t"}}; // toggle
-	if (s!==null) {
-		obj.seg.id = s;
-		// if live segment, enter live override (which also unfreezes)
-		if (lastinfo && s==lastinfo.liveseg && lastinfo.live) obj = {"lor":1};
-	}
-	requestJson(obj);
+function tglFreeze(s = null) {
+  var obj = { "seg": { "frz": "t" } }; // toggle
+  if (s !== null) {
+    obj.seg.id = s;
+    // if live segment, enter live override (which also unfreezes)
+    if (lastinfo && s == lastinfo.liveseg && lastinfo.live) obj = { "lor": 1 };
+  }
+  requestJson(obj);
 }
 
 // WLEDSR: add name and effectPar parameter for slider and color control
@@ -2087,13 +2372,12 @@ function setX(ind = null, name, effectPar) {
   }
   d.querySelector(`#fxlist .lstI[data-id="${ind}"]`).classList.add('selected');
 
-  var obj = {"seg": {"fx": parseInt(ind)}};
+  var obj = { "seg": { "fx": parseInt(ind) } };
   requestJson(obj);
 }
 
 // WLEDSR: parameter effectPar added, used by generateListItemHtml (for setX)
-function setPalette(paletteId = null, effectPar)
-{
+function setPalette(paletteId = null, effectPar) {
   if (paletteId === null) {
     paletteId = parseInt(d.querySelector('#pallist input[name="palette"]:checked').value);
   } else {
@@ -2104,64 +2388,64 @@ function setPalette(paletteId = null, effectPar)
     selElement.classList.remove('selected')
   }
   d.querySelector(`#pallist .lstI[data-id="${paletteId}"]`).classList.add('selected');
-  var obj = {"seg": {"pal": paletteId}};
+  var obj = { "seg": { "pal": paletteId } };
   requestJson(obj);
 }
 
 function setBri() {
-  var obj = {"bri": parseInt(d.getElementById('sliderBri').value)};
+  var obj = { "bri": parseInt(d.getElementById('sliderBri').value) };
   requestJson(obj);
 }
 
 //WLEDSR
 function setInputLevel() {
-  var obj = {"inputLevel": parseInt(d.getElementById('sliderInputLevel').value)};
+  var obj = { "inputLevel": parseInt(d.getElementById('sliderInputLevel').value) };
   requestJson(obj);
 }
 
 function setSpeed() {
-  var obj = {"seg": {"sx": parseInt(d.getElementById('sliderSpeed').value)}};
+  var obj = { "seg": { "sx": parseInt(d.getElementById('sliderSpeed').value) } };
   requestJson(obj, false);
 }
 
 function setIntensity() {
-  var obj = {"seg": {"ix": parseInt(d.getElementById('sliderIntensity').value)}};
+  var obj = { "seg": { "ix": parseInt(d.getElementById('sliderIntensity').value) } };
   requestJson(obj, false);
 }
 
 function setLor(i) {
-  var obj = {"lor": i};
+  var obj = { "lor": i };
   requestJson(obj);
 }
 
 function setCustom1() {
-  var obj = {"seg": {"c1x": parseInt(d.getElementById('sliderCustom1').value)}};
+  var obj = { "seg": { "c1x": parseInt(d.getElementById('sliderCustom1').value) } };
   requestJson(obj);
 }
 
 function setCustom2() {
-  var obj = {"seg": {"c2x": parseInt(d.getElementById('sliderCustom2').value)}};
+  var obj = { "seg": { "c2x": parseInt(d.getElementById('sliderCustom2').value) } };
   requestJson(obj);
 }
 
 function setCustom3() {
-  var obj = {"seg": {"c3x": parseInt(d.getElementById('sliderCustom3').value)}};
+  var obj = { "seg": { "c3x": parseInt(d.getElementById('sliderCustom3').value) } };
   requestJson(obj);
 }
 
 function setPreset(i) {
-  var obj = {"ps": i};
+  var obj = { "ps": i };
   if (isPlaylist(i)) obj.on = true;	//force on
-  showToast("Loading preset " + pName(i) +" (" + i + ")");
+  showToast("Loading preset " + pName(i) + " (" + i + ")");
   requestJson(obj);
 }
 
-function saveP(i,pl) {
+function saveP(i, pl) {
   pI = parseInt(d.getElementById(`p${i}id`).value);
-  if (!pI || pI < 1) pI = (i>0) ? i : getLowestUnusedP();
+  if (!pI || pI < 1) pI = (i > 0) ? i : getLowestUnusedP();
   pN = d.getElementById(`p${i}txt`).value;
 
-  if (pN == "") pN = (pl?"Playlist ":"Preset ") + pI;
+  if (pN == "") pN = (pl ? "Playlist " : "Preset ") + pI;
   var obj = {};
 
   if (!d.getElementById(`p${i}cstgl`).checked) {
@@ -2197,7 +2481,7 @@ function saveP(i,pl) {
   var pQN = d.getElementById(`p${i}ql`).value;
   if (pQN.length > 0) obj.ql = pQN;
 
-  showToast("Saving " + pN +" (" + pI + ")");
+  showToast("Saving " + pN + " (" + pI + ")");
   requestJson(obj);
   if (obj.o) {
     pJson[pI] = obj;
@@ -2206,50 +2490,47 @@ function saveP(i,pl) {
     delete pJson[pI].v;
     delete pJson[pI].time;
   } else {
-    pJson[pI] = {"n":pN, "win":"Please refresh the page to see this newly saved command."};
+    pJson[pI] = { "n": pN, "win": "Please refresh the page to see this newly saved command." };
     if (obj.win) pJson[pI].win = obj.win;
-    if (obj.ql)  pJson[pI].ql = obj.ql;
+    if (obj.ql) pJson[pI].ql = obj.ql;
   }
   populatePresets();
   resetPUtil();
 }
 
 // WLEDSR Custom Effects
-function fetchAndExecute(name, callback)
-{
-  var url = (loc?`http://${locip}`:'.') + "/" + name;
+function fetchAndExecute(name, callback) {
+  var url = (loc ? `http://${locip}` : '.') + "/" + name;
 
   fetch
-  (url, {
-    method: 'get'
-  })
-  .then(res => {
-    if (!res.ok) {
-       showToast("File " + name + " not found");
-       return "";
-    }
-    return res.text();
-  })
-  .then(text => {
-    callback(text);
-  })
-  .catch(function (error) {
-    showToast(error, true);
-    console.log(error);
-    presetError(false);
-  })
-  .finally(() => {
-    // if (callback) setTimeout(callback,99);
-  });
+    (url, {
+      method: 'get'
+    })
+    .then(res => {
+      if (!res.ok) {
+        showToast("File " + name + " not found");
+        return "";
+      }
+      return res.text();
+    })
+    .then(text => {
+      callback(text);
+    })
+    .catch(function (error) {
+      showToast(error, true);
+      console.log(error);
+      presetError(false);
+    })
+    .finally(() => {
+      // if (callback) setTimeout(callback,99);
+    });
 }
 
 // WLEDSR Custom Effects
-function populateCEEditor(name, segID)
-{
+function populateCEEditor(name, segID) {
 
-  fetchAndExecute(name + ".wled", function(text)
-  {
-    var cn=`<table class="infot"><tr><td>
+  fetchAndExecute(name + ".wled", function (text) {
+    var cn = `<table class="infot"><tr><td>
             Custom Effects Editor<br>
             <i>${name}.wled</i><br>
             <textarea class="ceTextarea" id="ceProgramArea">${text}</textarea>
@@ -2276,15 +2557,14 @@ function populateCEEditor(name, segID)
 }
 
 //WLEDSR Custom Effects
-function uploadFileWithText(name, text)
-{
+function uploadFileWithText(name, text) {
   var req = new XMLHttpRequest();
-  req.addEventListener('load', function(){showToast(this.responseText,this.status >= 400)});
-  req.addEventListener('error', function(e){showToast(e.stack,true);});
+  req.addEventListener('load', function () { showToast(this.responseText, this.status >= 400) });
+  req.addEventListener('error', function (e) { showToast(e.stack, true); });
   req.open("POST", "/upload");
   var formData = new FormData();
 
-  var blob = new Blob([text], {type : 'application/text'});
+  var blob = new Blob([text], { type: 'application/text' });
   var fileOfBlob = new File([blob], name);
   formData.append("upload", fileOfBlob);
 
@@ -2299,26 +2579,23 @@ function saveCE(name, segID) {
 
   uploadFileWithText("/" + name, ceProgramArea.value);
 
-  var obj = {"seg": {"id": segID, "reset": true}};
+  var obj = { "seg": { "id": segID, "reset": true } };
   requestJson(obj);
 
   var ceLogArea = d.getElementById("ceLogArea");
   ceLogArea.value = ".";
-  setTimeout(() =>
-  {
+  setTimeout(() => {
     loadLogFile(name + ".log", 1);
   }, 1000);
 }
 
 function loadLogFile(name, attempt) {
   var ceLogArea = d.getElementById("ceLogArea");
-  fetchAndExecute(name , function(logtext)
-  {
+  fetchAndExecute(name, function (logtext) {
     if (logtext == "") {
       if (attempt < 10) {
         ceLogArea.value = ("...........").substring(0, attempt + 1);
-        setTimeout(() =>
-        {
+        setTimeout(() => {
           loadLogFile(name, attempt + 1);
         }, 1000);
       }
@@ -2335,14 +2612,13 @@ function downloadCEFile(name) {
   var url = "https://raw.githubusercontent.com/MoonModules/WLED-Effects/master/CustomEffects/wled/" + name;
 
   var request = new XMLHttpRequest();
-  request.onload = function() {
+  request.onload = function () {
     if (name == "wled.json" || name == "presets.json") {
-        if (!confirm('Are you sure to download ' + name + '?'))
-          return;
-        uploadFileWithText("/" + name, request.response);
+      if (!confirm('Are you sure to download ' + name + '?'))
+        return;
+      uploadFileWithText("/" + name, request.response);
     }
-    else
-    {
+    else {
       var ceProgramArea = d.getElementById("ceProgramArea");
       ceProgramArea.value = request.response;
     }
@@ -2367,7 +2643,7 @@ program ${name}
 
 }
 
-function testPl(i,bt) {
+function testPl(i, bt) {
   if (bt.dataset.test == 1) {
     bt.dataset.test = 0;
     bt.innerHTML = "<i class='icons btn-icon'>&#xe139;</i>Test";
@@ -2383,218 +2659,217 @@ function testPl(i,bt) {
 }
 
 function stopPl() {
-  requestJson({playlist:{}})
+  requestJson({ playlist: {} })
 }
 
 function delP(i) {
   var bt = d.getElementById(`p${i}del`);
   if (bt.dataset.cnf == 1) {
-    var obj = {"pdel": i};
+    var obj = { "pdel": i };
     requestJson(obj);
     delete pJson[i];
     populatePresets();
   } else {
     bt.style.color = "#f00";
-    bt.innerHTML = "<i class='icons btn-icon'>&#xe037;</i>Confirm delete";
+    bt.innerHTML = "Confirm Delete";
     bt.dataset.cnf = 1;
   }
 }
 
 function selectSlot(b) {
-	csel = b;
-	var cd = d.getElementsByClassName('cl');
-	for (var i of cd) {
-		i.classList.remove("selected");
-	}
-	cd[csel].classList.add("selected");
-	setPicker(rgbStr(colors, csel));
-	//force slider update on initial load (picker "color:change" not fired if black)
-	if (cpick.color.value == 0) updatePSliders();
-	d.getElementById('sliderW').value = whites[csel];
-	updateTrail(d.getElementById('sliderW'));
-	redrawPalPrev();
+  csel = b;
+  var cd = d.getElementsByClassName('cl');
+  for (var i of cd) {
+    i.classList.remove("selected");
+  }
+  cd[csel].classList.add("selected");
+  setPicker(rgbStr(colors, csel));
+  //force slider update on initial load (picker "color:change" not fired if black)
+  if (cpick.color.value == 0) updatePSliders();
+  d.getElementById('sliderW').value = whites[csel];
+  updateTrail(d.getElementById('sliderW'));
+  redrawPalPrev();
 }
 
 // set the color from a hex string. Used by quick color selectors
 var lasth = 0;
-function pC(col)
-{
-	if (col == "rnd")
-	{
-	col = {h: 0, s: 0, v: 100};
-	col.s = Math.floor((Math.random() * 50) + 50);
-	do {
-		col.h = Math.floor(Math.random() * 360);
-	} while (Math.abs(col.h - lasth) < 50);
-	lasth = col.h;
-	}
-	setPicker(col);
-	setColor(0);
+function pC(col) {
+  if (col == "rnd") {
+    col = { h: 0, s: 0, v: 100 };
+    col.s = Math.floor((Math.random() * 50) + 50);
+    do {
+      col.h = Math.floor(Math.random() * 360);
+    } while (Math.abs(col.h - lasth) < 50);
+    lasth = col.h;
+  }
+  setPicker(col);
+  setColor(0);
 }
 
 function updatePSliders() {
-	//update RGB sliders
-	var col = cpick.color.rgb;
-	var s = d.getElementById('sliderR');
-	s.value = col.r; updateTrail(s,1);
-	s = d.getElementById('sliderG');
-	s.value = col.g; updateTrail(s,2);
-	s = d.getElementById('sliderB');
-	s.value = col.b; updateTrail(s,3);
+  //update RGB sliders
+  var col = cpick.color.rgb;
+  var s = d.getElementById('sliderR');
+  s.value = col.r; updateTrail(s, 1);
+  s = d.getElementById('sliderG');
+  s.value = col.g; updateTrail(s, 2);
+  s = d.getElementById('sliderB');
+  s.value = col.b; updateTrail(s, 3);
 
-	//update hex field
-	var str = cpick.color.hexString.substring(1);
-	var w = whites[csel];
-	if (w > 0) str += w.toString(16);
-	d.getElementById('hexc').value = str;
-	d.getElementById('hexcnf').style.backgroundColor = "var(--c-3)";
+  //update hex field
+  var str = cpick.color.hexString.substring(1);
+  var w = whites[csel];
+  if (w > 0) str += w.toString(16);
+  d.getElementById('hexc').value = str;
+  d.getElementById('color-r').value = col.r;
+  d.getElementById('color-g').value = col.g;
+  d.getElementById('color-b').value = col.b;
+  // d.getElementById('hexcnf').style.backgroundColor = "var(--c-3)";
 
-	//update value slider
-	var v = d.getElementById('sliderV');
-	v.value = cpick.color.value;
-	//background color as if color had full value
-	var hsv = {"h":cpick.color.hue,"s":cpick.color.saturation,"v":100};
-	var c = iro.Color.hsvToRgb(hsv);
-	var cs = 'rgb('+c.r+','+c.g+','+c.b+')';
-	v.parentNode.getElementsByClassName('sliderdisplay')[0].style.setProperty('--bg',cs);
-	updateTrail(v);
+  //update value slider
+  var v = d.getElementById('sliderV');
+  v.value = cpick.color.value;
+  //background color as if color had full value
+  var hsv = { "h": cpick.color.hue, "s": cpick.color.saturation, "v": 100 };
+  var c = iro.Color.hsvToRgb(hsv);
+  var cs = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+  v.parentNode.getElementsByClassName('sliderdisplay')[0].style.setProperty('--bg', cs);
+  updateTrail(v);
 
-	// update Kelvin slider
-	d.getElementById('sliderK').value = cpick.color.kelvin;
+  // update Kelvin slider
+  d.getElementById('sliderK').value = cpick.color.kelvin;
 }
 
 // Fired when a key is pressed while in the HEX color input
 function hexEnter() {
-  d.getElementById('hexcnf').style.backgroundColor = "var(--c-6)";
-  if(event.keyCode == 13) fromHex();
+  // d.getElementById('hexcnf').style.backgroundColor = "var(--c-6)";
+  if (event.keyCode == 13) fromHex();
 }
 
 // Fired when a key is pressed while in a segment input
 function segEnter(s) {
-	if(event.keyCode == 13) setSeg(s);
+  if (event.keyCode == 13) setSeg(s);
 }
 
 // Fired when a key is pressed while in a segment input
 function segEnter(s) {
-	if(event.keyCode == 13) setSeg(s);
+  if (event.keyCode == 13) setSeg(s);
 }
 
-function fromHex()
-{
-	var str = d.getElementById('hexc').value;
-	whites[csel] = parseInt(str.substring(6), 16);
-	try {
-		setPicker("#" + str.substring(0,6));
-	} catch (e) {
-		setPicker("#ffaa00");
-	}
-	if (isNaN(whites[csel])) whites[csel] = 0;
-	setColor(2);
+function fromHex() {
+  var str = d.getElementById('hexc').value;
+  whites[csel] = parseInt(str.substring(6), 16);
+  try {
+    setPicker("#" + str.substring(0, 6));
+  } catch (e) {
+    setPicker("#ffaa00");
+  }
+  if (isNaN(whites[csel])) whites[csel] = 0;
+  setColor(2);
 }
 
 function setPicker(rgb) {
-	var c = new iro.Color(rgb);
-	if (c.value > 0) cpick.color.set(c);
-	else cpick.color.setChannel('hsv', 'v', 0);
+  var c = new iro.Color(rgb);
+  if (c.value > 0) cpick.color.set(c);
+  else cpick.color.setChannel('hsv', 'v', 0);
 }
 
-function fromV()
-{
-	cpick.color.setChannel('hsv', 'v', d.getElementById('sliderV').value);
+function fromV() {
+  cpick.color.setChannel('hsv', 'v', d.getElementById('sliderV').value);
 }
 
-function fromK()
-{
-	cpick.color.set({ kelvin: d.getElementById('sliderK').value });
+function fromK() {
+  cpick.color.set({ kelvin: d.getElementById('sliderK').value });
 }
 
-function fromRgb()
-{
-	var r = d.getElementById('sliderR').value;
-	var g = d.getElementById('sliderG').value;
-	var b = d.getElementById('sliderB').value;
-	setPicker(`rgb(${r},${g},${b})`);
+function fromRgb() {
+  var r = d.getElementById('sliderR').value;
+  var g = d.getElementById('sliderG').value;
+  var b = d.getElementById('sliderB').value;
+  setPicker(`rgb(${r},${g},${b})`);
+}
+
+function rgbEnter() {
+  var r = d.getElementById('color-r').value;
+  var g = d.getElementById('color-g').value;
+  var b = d.getElementById('color-b').value;
+  setPicker(`rgb(${r},${g},${b})`);
 }
 
 // sr 0: from RGB sliders, 1: from picker, 2: from hex
 function setColor(sr) {
-	if (sr == 1 && colors[csel][0] == 0 && colors[csel][1] == 0 && colors[csel][2] == 0) cpick.color.setChannel('hsv', 'v', 100);
-	if (sr != 2) whites[csel] = parseInt(d.getElementById('sliderW').value);
-	var col = cpick.color.rgb;
-	colors[csel] = [col.r, col.g, col.b, whites[csel]];
-	setCSL(csel);
-	var obj = {"seg": {"col": [[],[],[]]}};
-	obj.seg.col[csel] = colors[csel];
-	requestJson(obj);
+  if (sr == 1 && colors[csel][0] == 0 && colors[csel][1] == 0 && colors[csel][2] == 0) cpick.color.setChannel('hsv', 'v', 100);
+  if (sr != 2) whites[csel] = parseInt(d.getElementById('sliderW').value);
+  var col = cpick.color.rgb;
+  colors[csel] = [col.r, col.g, col.b, whites[csel]];
+  setCSL(csel);
+  var obj = { "seg": { "col": [[], [], []] } };
+  obj.seg.col[csel] = colors[csel];
+  requestJson(obj);
 }
 
-function setBalance(b)
-{
-	var obj = {"seg": {"cct": parseInt(b)}};
-	requestJson(obj);
+function setBalance(b) {
+  var obj = { "seg": { "cct": parseInt(b) } };
+  requestJson(obj);
 }
 
 var hc = 0;
-setInterval(function(){if (!isInfo) return; hc+=18; if (hc>300) hc=0; if (hc>200)hc=306; if (hc==144) hc+=36; if (hc==108) hc+=18;
-d.getElementById('heart').style.color = `hsl(${hc}, 100%, 50%)`;}, 910);
+setInterval(function () {
+  if (!isInfo) return; hc += 18; if (hc > 300) hc = 0; if (hc > 200) hc = 306; if (hc == 144) hc += 36; if (hc == 108) hc += 18;
+  d.getElementById('heart').style.color = `hsl(${hc}, 100%, 50%)`;
+}, 910);
 
-function openGH()
-{
+function openGH() {
   window.open("https://github.com/atuline/WLED/wiki");
 }
 
 var cnfr = false;
-function cnfReset()
-{
-	if (!cnfr)
-	{
-		var bt = d.getElementById('resetbtn');
-		bt.style.color = "#f00";
-		bt.innerHTML = "Confirm Reboot";
-		cnfr = true; return;
-	}
-	window.location.href = "/reset";
+function cnfReset() {
+  if (!cnfr) {
+    var bt = d.getElementById('resetbtn');
+    bt.style.color = "#f00";
+    bt.innerHTML = "Confirm Reboot";
+    cnfr = true; return;
+  }
+  window.location.href = "/reset";
 }
 
 var cnfrS = false;
-function rSegs()
-{
-	var bt = d.getElementById('rsbtn');
-	if (!cnfrS)
-	{
-		bt.style.color = "#f00";
-		bt.innerHTML = "Confirm reset";
-		cnfrS = true; return;
-	}
-	cnfrS = false;
-	bt.style.color = "#fff";
-	bt.innerHTML = "Reset segments";
-	var obj = {"seg":[{"start":0,"stop":ledCount,"sel":true}]};
-	for (let i=1; i<=lSeg; i++){
-		obj.seg.push({"stop":0});
-	}
-	requestJson(obj);
+function rSegs() {
+  var bt = d.getElementById('rsbtn');
+  if (!cnfrS) {
+    bt.style.color = "#f00";
+    bt.innerHTML = "Confirm reset";
+    cnfrS = true; return;
+  }
+  cnfrS = false;
+  bt.style.color = "#fff";
+  bt.innerHTML = "Reset segments";
+  var obj = { "seg": [{ "start": 0, "stop": ledCount, "sel": true }] };
+  for (let i = 1; i <= lSeg; i++) {
+    obj.seg.push({ "stop": 0 });
+  }
+  requestJson(obj);
 }
 
-function loadPalettesData(callback = null)
-{
-	if (palettesData) return;
-	const lsKey = "wledPalx";
-	var palettesDataJson = localStorage.getItem(lsKey);
-	if (palettesDataJson) {
-		try {
-			palettesDataJson = JSON.parse(palettesDataJson);
-			var d = new Date();
-			if (palettesDataJson && palettesDataJson.vid == lastinfo.vid) {
-				palettesData = palettesDataJson.p;
-				if (callback) callback();
-				return;
-			}
-		} catch (e) {}
-	}
+function loadPalettesData(callback = null) {
+  if (palettesData) return;
+  const lsKey = "wledPalx";
+  var palettesDataJson = localStorage.getItem(lsKey);
+  if (palettesDataJson) {
+    try {
+      palettesDataJson = JSON.parse(palettesDataJson);
+      var d = new Date();
+      if (palettesDataJson && palettesDataJson.vid == lastinfo.vid) {
+        palettesData = palettesDataJson.p;
+        if (callback) callback();
+        return;
+      }
+    } catch (e) { }
+  }
 
   palettesData = {};
-  getPalettesData(0, function() {
+  getPalettesData(0, function () {
     localStorage.setItem(lsKey, JSON.stringify({
       p: palettesData,
       vid: lastinfo.vid
@@ -2604,8 +2879,7 @@ function loadPalettesData(callback = null)
   });
 }
 
-function getPalettesData(page, callback)
-{
+function getPalettesData(page, callback) {
   var url = `/json/palx?page=${page}`;
   if (loc) {
     url = `http://${locip}${url}`;
@@ -2617,46 +2891,46 @@ function getPalettesData(page, callback)
       "Content-type": "application/json; charset=UTF-8"
     }
   })
-  .then(res => {
-    if (!res.ok) {
-      showErrorToast();
-    }
-    return res.json();
-  })
-  .then(json => {
-    palettesData = Object.assign({}, palettesData, json.p);
-    if (page < json.m) {
-      getPalettesData(page + 1, callback);
-    } else {
-      callback();
-    }
-  })
-  .catch(function (error) {
-    showToast(error, true);
-    console.log(error);
-  });
+    .then(res => {
+      if (!res.ok) {
+        showErrorToast();
+      }
+      return res.json();
+    })
+    .then(json => {
+      palettesData = Object.assign({}, palettesData, json.p);
+      if (page < json.m) {
+        getPalettesData(page + 1, callback);
+      } else {
+        callback();
+      }
+    })
+    .catch(function (error) {
+      showToast(error, true);
+      console.log(error);
+    });
 }
 
 function search(searchField) {
-	var searchText = searchField.value.toUpperCase();
-	searchField.parentElement.getElementsByClassName('search-cancel-icon')[0].style.display = (searchText.length < 1)?"none":"inline";
-	var elements = searchField.parentElement.parentElement.querySelectorAll('.lstI');
-	for (i = 0; i < elements.length; i++) {
-		var item = elements[i];
-		var itemText = item.querySelector('.lstIname').innerText.toUpperCase();
-		if (itemText.indexOf(searchText) > -1) {
-			item.style.display = "";
-		} else {
-			item.style.display = "none";
-		}
-	}
+  var searchText = searchField.value.toUpperCase();
+  searchField.parentElement.getElementsByClassName('search-cancel-icon')[0].style.display = (searchText.length < 1) ? "none" : "none";
+  var elements = searchField.parentElement.parentElement.querySelectorAll('.lstI');
+  for (i = 0; i < elements.length; i++) {
+    var item = elements[i];
+    var itemText = item.querySelector('.lstIname').innerText.toUpperCase();
+    if (itemText.indexOf(searchText) > -1) {
+      item.style.display = "";
+    } else {
+      item.style.display = "none";
+    }
+  }
 }
 
 function cancelSearch(ic) {
-	var searchField = ic.parentElement.getElementsByClassName('search')[0];
-	searchField.value = "";
-	search(searchField);
-	searchField.focus();
+  var searchField = ic.parentElement.getElementsByClassName('search')[0];
+  searchField.value = "";
+  search(searchField);
+  searchField.focus();
 }
 
 // make sure "dur" and "transition" are arrays with at least the length of "ps"
@@ -2668,10 +2942,9 @@ function formatArr(pl) {
     pl.dur = [v];
   }
   var l2 = pl.dur.length;
-  if (l2 < l)
-  {
+  if (l2 < l) {
     for (var i = 0; i < l - l2; i++)
-      pl.dur.push(pl.dur[l2-1]);
+      pl.dur.push(pl.dur[l2 - 1]);
   }
 
   if (!Array.isArray(pl.transition)) {
@@ -2680,43 +2953,41 @@ function formatArr(pl) {
     pl.transition = [v];
   }
   var l2 = pl.transition.length;
-  if (l2 < l)
-  {
+  if (l2 < l) {
     for (var i = 0; i < l - l2; i++)
-      pl.transition.push(pl.transition[l2-1]);
+      pl.transition.push(pl.transition[l2 - 1]);
   }
 }
 
-function expand(i,a)
-{
-	if (!a) expanded[i] = !expanded[i];
-	d.getElementById('seg' +i).style.display = (expanded[i]) ? "block":"none";
-	d.getElementById('sege' +i).style.transform = (expanded[i]) ? "rotate(180deg)":"rotate(0deg)";
-	if (i < 100) {
-		d.getElementById(`seg${i}nedit`).style.display = (expanded[i]) ? "inline":"none";
-		return; //no preset, we are done
-	}
+function expand(i, a) {
+  if (!a) expanded[i] = !expanded[i];
+  d.getElementById('seg' + i).style.display = (expanded[i]) ? "block" : "none";
+  d.getElementById('sege' + i).style.transform = (expanded[i]) ? "rotate(180deg)" : "rotate(0deg)";
+  // if (i < 100) {
+  //   d.getElementById(`seg${i}nedit`).style.display = (expanded[i]) ? "inline" : "none";
+  //   return; //no preset, we are done
+  // }
 
-	var p = i-100;
-	d.getElementById(`p${p}o`).style.background = (expanded[i] || p != currentPreset)?"var(--c-2)":"var(--c-6)";
-	if (d.getElementById('seg' +i).innerHTML != "") return;
-	if (isPlaylist(p)) {
-		plJson[p] = pJson[p].playlist;
-		//make sure all keys are present in plJson[p]
-		formatArr(plJson[p]);
-		if (isNaN(plJson[p].repeat)) plJson[p].repeat = 0;
-		if (!plJson[p].r) plJson[p].r = false;
-		if (isNaN(plJson[p].end)) plJson[p].end = 0;
+  var p = i - 100;
+  // d.getElementById(`p${p}o`).style.background = (expanded[i] || p != currentPreset) ? "var(--c-2)" : "var(--c-6)";
+  if (d.getElementById('seg' + i).innerHTML != "") return;
+  if (isPlaylist(p)) {
+    plJson[p] = pJson[p].playlist;
+    //make sure all keys are present in plJson[p]
+    formatArr(plJson[p]);
+    if (isNaN(plJson[p].repeat)) plJson[p].repeat = 0;
+    if (!plJson[p].r) plJson[p].r = false;
+    if (isNaN(plJson[p].end)) plJson[p].end = 0;
 
-		d.getElementById('seg' +i).innerHTML = makeP(p,true);
-		refreshPlE(p);
-	} else {
-		d.getElementById('seg' +i).innerHTML = makeP(p);
-	}
-	var papi = papiVal(p);
-	d.getElementById(`p${p}api`).value = papi;
-	if (papi.indexOf("Please") == 0) d.getElementById(`p${p}cstgl`).checked = true;
-	tglCs(p);
+    d.getElementById('seg' + i).innerHTML = makeP(p, true);
+    refreshPlE(p);
+  } else {
+    d.getElementById('seg' + i).innerHTML = makeP(p);
+  }
+  var papi = papiVal(p);
+  d.getElementById(`p${p}api`).value = papi;
+  if (papi.indexOf("Please") == 0) d.getElementById(`p${p}cstgl`).checked = true;
+  tglCs(p);
 }
 
 function unfocusSliders() {
@@ -2735,7 +3006,7 @@ const _C = d.querySelector('.container'), N = 4;
 
 let iSlide = 0, x0 = null, scrollS = 0, locked = false, w;
 
-function unify(e) {	return e.changedTouches ? e.changedTouches[0] : e; }
+function unify(e) { return e.changedTouches ? e.changedTouches[0] : e; }
 
 function hasIroClass(classList) {
   for (var i = 0; i < classList.length; i++) {
@@ -2761,55 +3032,59 @@ function lock(e) {
 }
 
 function move(e) {
-  if(!locked || pcMode) return;
+  if (!locked || pcMode) return;
   var clientX = unify(e).clientX;
   var dx = clientX - x0;
   var s = Math.sign(dx);
-  var f = +(s*dx/w).toFixed(2);
+  var f = +(s * dx / w).toFixed(2);
 
-	if ((clientX != 0) &&
-		(iSlide > 0 || s < 0) && (iSlide < N - 1 || s > 0) &&
-		f > 0.12 &&
-		d.getElementsByClassName("tabcontent")[iSlide].scrollTop == scrollS) {
-		_C.style.setProperty('--i', iSlide -= s);
-		f = 1 - f;
-		updateTablinks(iSlide);
-	}
-	_C.style.setProperty('--f', f);
-	_C.classList.toggle('smooth', !(locked = false));
-	x0 = null;
+  if ((clientX != 0) &&
+    (iSlide > 0 || s < 0) && (iSlide < N - 1 || s > 0) &&
+    f > 0.12 &&
+    d.getElementsByClassName("tabcontent")[iSlide].scrollTop == scrollS) {
+    _C.style.setProperty('--i', iSlide -= s);
+    f = 1 - f;
+    updateTablinks(iSlide);
+  }
+  _C.style.setProperty('--f', f);
+  _C.classList.toggle('smooth', !(locked = false));
+  x0 = null;
 }
 
 function size() {
-	w = window.innerWidth;
-	d.getElementById('buttonNodes').style.display = (lastinfo.ndc > 0 && w > 770) ? "block":"none";
-	var h = d.getElementById('top').clientHeight;
-	sCol('--th', h + "px");
-	sCol('--bh', d.getElementById('bot').clientHeight + "px");
-	if (isLv) h -= 4;
-	sCol('--tp', h + "px");
-	togglePcMode();
+  w = window.innerWidth;
+  // d.getElementById('buttonNodes').style.display = (lastinfo.ndc > 0 && w > 770) ? "none" : "none";
+  var h = d.getElementById('top').clientHeight;
+  sCol('--th', h + "px");
+  sCol('--bh', d.getElementById('bot').clientHeight + "px");
+  if (isLv) h -= 4;
+  sCol('--tp', h + "px");
+  togglePcMode();
 }
 
-function togglePcMode(fromB = false)
-{
+function togglePcMode(fromB = false) {
   if (fromB) {
-  pcModeA = !pcModeA;
-  localStorage.setItem('pcm', pcModeA);
-  pcMode = pcModeA;
+    pcModeA = !pcModeA;
+    localStorage.setItem('pcm', pcModeA);
+    pcMode = pcModeA;
   }
   if (w < 1250 && !pcMode) return;
   if (!fromB && ((w < 1250 && lastw < 1250) || (w >= 1250 && lastw >= 1250))) return;
   openTab(0, true);
-  if (w < 1250) {pcMode = false;}
+  if (w < 1250) { pcMode = false; }
   else if (pcModeA && !fromB) pcMode = pcModeA;
   updateTablinks(0);
-  d.getElementById('buttonPcm').className = (pcMode) ? "active":"";
-  d.getElementById('bot').style.height = (pcMode && !cfg.comp.pcmbot) ? "0":"auto";
+  d.getElementById('buttonPcm').className = (pcMode) ? "active" : "";
+  d.getElementById('bot').style.height = (pcMode && !cfg.comp.pcmbot) ? "0" : "auto";
   sCol('--bh', d.getElementById('bot').clientHeight + "px");
-  _C.style.width = (pcMode)?'100%':'400%';
+  _C.style.width = (pcMode) ? '100%' : '400%';
+  if (pcMode) {
+    _C.style.setProperty('--mw', "300px");
+  } else {
+    _C.style.setProperty('--mw', "300px");
+  }
   lastw = w;
-
+  // d.getElementsByClassName("tabcontent")
   //WLEDSR Blazoncek default slider values
   //looks like not needed anymore:
   // if (selectedFx != -1) setEffectParameters(selectedFx, selectedEffectNameHTML, sliderControl); // WLEDSR: to setEffectParameters depending on pcmode
@@ -2818,6 +3093,7 @@ function togglePcMode(fromB = false)
 function isObject(item) {
   return (item && typeof item === 'object' && !Array.isArray(item));
 }
+
 
 function mergeDeep(target, ...sources) {
   if (!sources.length) return target;

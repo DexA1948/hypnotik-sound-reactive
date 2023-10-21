@@ -1,39 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8">
-	<title>WLED Settings</title>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Hypnotik Settings</title>
+	<script>
+		function H() {
+			window.open("https://kno.wled.ge/features/settings/#time-settings");
+		}
+		function B() {
+			window.open("/sliders", "_self");
+		}
+	</script>
 	<style>
+		hr {
+			margin: 2px auto;
+		}
+
 		body {
 			text-align: center;
-			background: #222;
-			height: 100px;
+			background: #000;
 			margin: 0;
+			font-family: sans-serif;
 		}
-		html {
-			--h: 8.9vh;
-		}
+
 		button {
-			background: #333;
-			color: #fff;
-			font-family: Verdana, Helvetica, sans-serif;
-			border: 1px solid #333;
-			border-radius: 0.5em;
-			font-size: 6.5vmin;
-			height: var(--h);
-			width: calc(100% - 40px);
-			margin-top: 2vh;
+			border: 1px solid #909090;
+			background: var(--white, #000);
+			color: var(--black-900, #fff);
+		}
+
+		button:hover{
+			background: var(--white, #fff);
+			color: var(--black-900, #000);
+			cursor: pointer;
+			transition: 0.5s;
+		}
+
+		button.settingsbutton {
+			width: 45vw;
+			min-width: 300px;
+			margin: 8px auto;
+			display: flex;
+			padding: 10px;
+			align-items: center;
+			justify-content: center;
+
+			border-radius: 30px;
+			
+			text-align: center;
+			/* font-family: Barlow Condensed; */
+			font-size: 20px;
+			font-style: normal;
+			font-weight: 600;
+			line-height: normal;
+		}
+/* 
+		button.settingsbutton:hover {
+			background: var(--white, #FFF);
+			color: var(--black-900, #000);
+		} */
+
+		.section-heading {
+			color: #4b9dc9;
+			text-align: center;
+			font-weight: 550;
+			font-size: 25px;
+			/* font: 500 30px "Barlow Condensed", sans-serif; */
+			margin: 0 0 5px 0;
 		}
 	</style>
 </head>
+
 <body>
-<form action="/"><button type=submit id="b">Back</button></form>
-<form action="/settings/wifi"><button type="submit">WiFi Setup</button></form>
-<form action="/settings/leds"><button type="submit">LED Preferences</button></form>
-<form action="/settings/sound"><button type="submit">Sound Settings</button></form>
-<form action="/settings/ui"><button type="submit">User Interface</button></form>
-<form action="/settings/sync"><button type="submit">Sync Interfaces</button></form>
-<form action="/settings/time"><button type="submit">Time & Macros</button></form>
-<form action="/settings/um"><button type="submit">Usermods</button></form>
-<form action="/settings/sec"><button type="submit">Security & Updates</button></form>
+	<div class="helpB" style="text-align: left;position: absolute;width: 60px;margin-bottom: 20px;">
+		<button type="button" onclick="H()" style="outline: none;
+		cursor: pointer;
+		padding: 5px 10px;
+		margin: 10px;
+		text-transform: uppercase;
+		font-size: 15px;
+		font-style: normal;
+		font-weight: 550;
+		line-height: normal;
+		/* border: 1px solid var(--black-500, #909090);
+		background: var(--white, #000);
+		color: var(--black-900, #fff); */
+		border-radius: 25px;
+		width: 40px;">?</button>
+	</div>
+	<button type="button" onclick="B()" style="outline: none;
+	cursor: pointer;
+	padding: 5px 10px;
+	margin: 10px;
+	text-transform: uppercase;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 550;
+	line-height: normal;
+	/* border: 1px solid var(--black-500, #909090);
+	background: var(--white, #000);
+	color: var(--black-900, #fff); */
+	border-radius: 25px;">Back</button>
+	<hr>
+	<div style="display: flex;align-items: center;justify-content: center;height: calc(100vh - 130px);">
+		<div>
+			<br>
+			<p class="section-heading">Settings</p>
+			<!-- <br> -->
+			<form action="/settings/wifi"><button type="submit" class="settingsbutton">WiFi Setup</button></form>
+			<form action="/settings/leds"><button type="submit" class="settingsbutton">LED Preferences</button></form>
+			<form action="/settings/sound"><button type="submit" class="settingsbutton">Sound Settings</button></form>
+			<form action="/settings/ui"><button type="submit" class="settingsbutton">User Interface</button></form>
+			<form action="/settings/sync"><button type="submit" class="settingsbutton">Sync Interfaces</button></form>
+			<form action="/settings/time"><button type="submit" class="settingsbutton">Time & Macros</button></form>
+			<form action="/settings/um"><button type="submit" class="settingsbutton">Usermods</button></form>
+			<form action="/settings/sec"><button type="submit" class="settingsbutton">Security & Updates</button></form>
+			<!-- <form action="/"><button type=submit id="b" class="cancel-button" class="settingsbutton">Back</button></form> -->
+		</div>
+	</div>
+	<hr>
+	<button type="button" onclick="B()" style="outline: none;
+	cursor: pointer;
+	padding: 5px 10px;
+	margin: 10px;
+	text-transform: uppercase;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 550;
+	line-height: normal;
+	/* border: 1px solid var(--black-500, #909090);
+	background: var(--white, #000);
+	color: var(--black-900, #fff); */
+	border-radius: 25px;">Back</button>
+
 </body>
+
 </html>

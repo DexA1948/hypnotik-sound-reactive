@@ -1,0 +1,214 @@
+body {
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    align-items: center;
+    /* justify-content: center; */
+    font-family: sans-serif;
+}
+
+:root {
+    --c-1: #000;
+    --c-f: #fff;
+    --c-2: #2C2C2C;
+    --c-3: #333;
+    --c-4: #444;
+    --c-5: #555;
+    --c-6: #666;
+    --c-8: #909090;
+    --c-b: #bbb;
+    --c-c: #ccc;
+    --c-e: #eee;
+    --c-d: #ddd;
+    --c-r: #831;
+    --t-b: 0.5;
+    --c-o: rgba(34, 34, 34, 0.9);
+    --c-tb: rgba(34, 34, 34, var(--t-b));
+    --c-tba: rgba(102, 102, 102, var(--t-b));
+    --c-tbh: rgba(51, 51, 51, var(--t-b));
+    /*following are internal*/
+    --th: 70px;
+    --tp: 70px;
+    --bh: 63px;
+    --tbp: 14px 14px 10px 14px;
+    --bbp: 9px 0 7px 0;
+    --bhd: none;
+    --bmt: 0px;
+}
+
+select#CS{
+    box-sizing: border-box;
+    width: 100%;
+    margin: 10px auto;
+    padding: 10px;
+    background: var(--c-1);
+    color: var(--c-f);
+    border-radius: 14px;
+    border: 1px solid var(--c-8);
+}
+
+option {
+    width: 100px;
+    background-color: var(--c-1);
+    color: var(--c-f);
+}
+
+.contain-middle {
+    display: flex;
+    width: 340px;
+    margin: auto;
+    padding: 0px 10px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.scan-button {
+    display: flex;
+    width: 140px;
+    padding: 15px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    background: none;
+
+    border-radius: 29px;
+    border: 1px solid var(--white, #FFF);
+
+    color: var(--white, #FFF);
+    text-align: center;
+    /* font-family: Barlow Condensed; */
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.save-connect-button {
+    display: flex;
+    padding: 15px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+
+    border-radius: 29px;
+    background: #FFF;
+    box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.25);
+
+    color: #000;
+    text-align: center;
+    /* font-family: Barlow Condensed; */
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.scan-button:hover {
+    background: #9a94946c;
+}
+
+.section-heading {
+    color: #4b9dc9;
+    text-align: left;
+    font-weight: 500;
+    font-size: 30px;
+    /* font: 500 30px "Barlow Condensed", sans-serif; */
+    margin: 0 0 20px 0;
+}
+
+.input-label {
+    color: var(--c-8);
+    /* font-family: Barlow Condensed; */
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    margin-bottom: 5px;
+}
+
+input {
+    box-sizing: border-box;
+    border: none;
+    background-color: transparent;
+    border-bottom: 1px solid var(--c-8);
+    width: 100%%;
+
+    color: var(--c-f);
+    font-weight: 400;
+    font-size: 20px;
+    /* font: 400 20px "Barlow Condensed", sans-serif; */
+    padding: 5px;
+}
+
+input[type="number"] {
+    text-align: center;
+}
+
+input:focus {
+    outline: none;
+}
+
+/* Hide the up and down arrows (spinner) in Chrome, Safari, Edge, and Firefox */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    /* For Firefox */
+}
+
+table tr td {
+    padding: 0 10px;
+}
+
+table tr td:first-child {
+    padding-left: 0;
+}
+
+table tr td:last-child {
+    padding-right: 0;
+}
+
+#toast {
+    opacity: 0;
+    background-color: #444;
+    border-radius: 5px;
+    bottom: 64px;
+    color: #fff;
+    font-size: 17px;
+    padding: 16px;
+    pointer-events: none;
+    position: fixed;
+    text-align: center;
+    z-index: 5;
+    transform: translateX(-50%%);
+    /* %% because of AsyncWebServer */
+    max-width: 90%%;
+    /* %% because of AsyncWebServer */
+    left: 50%%;
+    /* %% because of AsyncWebServer */
+}
+
+#toast.show {
+    opacity: 1;
+    background-color: #264;
+    animation: fadein 0.5s, fadein 0.5s 2.5s reverse;
+}
+
+#toast.error {
+    opacity: 1;
+    background-color: #b21;
+    animation: fadein 0.5s;
+}
+
+.hyp-logo {
+    width: 340px;
+}

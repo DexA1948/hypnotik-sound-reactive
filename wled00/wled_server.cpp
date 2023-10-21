@@ -89,8 +89,17 @@ void initServer()
   server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
     if(!handleFileRead(request, "/favicon.ico"))
     {
-      request->send_P(200, "image/x-icon", favicon, 156);
+      request->send_P(200, "image/x-icon", favicon, favicon_length);
     }
+  });
+
+  server.on("/hyplogo", HTTP_GET, [](AsyncWebServerRequest *request){
+
+  // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", PAGE_index, PAGE_index_L);
+  // response->addHeader(F("Content-Encoding"),"gzip");
+  // setStaticContentCacheHeaders(response);
+  // request->send(response);
+  request->send_P(200, "image/png", hyplogo, hyplogo_L);
   });
 
   server.on("/sliders", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -501,14 +510,14 @@ void serveSettings(AsyncWebServerRequest* request, bool post)
 
   switch (subPage)
   {
-    case 1:   request->send_P(200, "text/html", PAGE_settings_wifi , settingsProcessor); break;
+    case 1:   request->send_P(200, "text/html", PAGE_settings_wifi , NULL); break; //settingsProcessor
     case 2:   request->send_P(200, "text/html", PAGE_settings_leds , settingsProcessor); break;
     case 3:   request->send_P(200, "text/html", PAGE_settings_ui   , settingsProcessor); break;
     case 4:   request->send_P(200, "text/html", PAGE_settings_sync , settingsProcessor); break;
     case 5:   request->send_P(200, "text/html", PAGE_settings_time , settingsProcessor); break;
     case 6:   request->send_P(200, "text/html", PAGE_settings_sec  , settingsProcessor); break;
     case 7:   request->send_P(200, "text/html", PAGE_settings_dmx  , settingsProcessor); break;
-    case 8:   request->send_P(200, "text/html", PAGE_settings_um   , settingsProcessor); break;
+    case 8:   request->send_P(200, "text/html", PAGE_settings_um   , settingsProcessor ); break; //settingsProcessor
     case 9:   request->send_P(200, "text/html", PAGE_settings_sound, settingsProcessor); break;  // add sound settings page
     case 255: request->send_P(200, "text/html", PAGE_welcome); break;
     default:  request->send_P(200, "text/html", PAGE_settings     , settingsProcessor);
