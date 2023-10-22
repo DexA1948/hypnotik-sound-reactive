@@ -30,7 +30,7 @@
 body {
     font-family: sans-serif;
     text-align: center;
-    background: #000;
+    background: red;
     color: #fff;
     line-height: 200%%;
     /* %% because of AsyncWebServer */

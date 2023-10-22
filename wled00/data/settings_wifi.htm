@@ -18,8 +18,6 @@
 			const button = gId("scan");
 			button.disabled = true;
 			button.textContent = "Scanning...";
-			button.style.background = "#fff";
-			button.style.color = "#000";
 
 			fetch(getURL("/json/net")).then((response) => {
 				return response.json();
@@ -89,8 +87,6 @@
 
 				button.disabled = false;
 				button.textContent = "Scan";
-				button.style.background = "#000";
-				button.style.color = "#fff";
 			});
 		}
 		// replace WiFi select with custom SSID input field again
@@ -403,10 +399,10 @@
 		Network name: <br><input name="CS" maxlength="32" id="CS"><br>(SSID, empty to not connect)<br>
 		Network password: <br> <input type="password" name="CP" maxlength="63"><br>
 		Static IP (leave at 0.0.0.0 for DHCP):<br>
-		<input name="I0" type="number" class="s" min="0" max="255" required required value="0"> .
-		<input name="I1" type="number" class="s" min="0" max="255" required required value="0"> .
-		<input name="I2" type="number" class="s" min="0" max="255" required required value="0"> .
-		<input name="I3" type="number" class="s" min="0" max="255" required required value="0"><br>
+		<input name="I0" type="number" class="s" min="0" max="255" required value="0"> .
+		<input name="I1" type="number" class="s" min="0" max="255" required value="0"> .
+		<input name="I2" type="number" class="s" min="0" max="255" required value="0"> .
+		<input name="I3" type="number" class="s" min="0" max="255" required value="0"><br>
 		Static gateway:<br>
 		<input name="G0" type="number" class="s" min="0" max="255"> .
 		<input name="G1" type="number" class="s" min="0" max="255"> .

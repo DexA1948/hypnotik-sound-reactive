@@ -44,29 +44,47 @@ var hol = [
   [2024, 2, 31, 2, "https://aircoookie.github.io/easter.png"]
 ];
 
-function appendOutput() {
-  const sections = document.querySelectorAll('.colors-slider-containers');
+// function appendOutput() {
+//   const sections = document.querySelectorAll('.colors-slider-containers');
 
-  sections.forEach(section => {
-    const output = document.createElement('output');
-    output.className = 'sliderbubble-up';
-    const mobileSlider = section.querySelector('.mobile-colors-slider');
-    const desktopSlider = section.querySelector('.desktop-colors-slider');
+//   sections.forEach(section => {
+//     console.log(section.id);
+//     const output = document.createElement('input');
+//     output.className = 'sliderbubble-up';
+//     output.type = "number";
+//     output.addEventListener("keydown", () => {
+//       if (section.id == 'kwrap') {
+//         console.log(output.value);
+//         cpick.color.set({ kelvin: output.value });
+//         // setColor(0);
+//       } else if (section.id == 'vwrap') {
+//         cpick.color.setChannel('hsv', 'v', output.value);
+//         // setColor(0);
+//       } else if (section.id == 'wwrap') {
+//         setColor(0, output.value, 3);
+//       } else if (section.id == 'wbal') {
+//         var obj = { "seg": { "cct": parseInt(output.value) } };
+//         requestJson(obj);
+//       }
+//     });
 
-    // If the output element is already appended somewhere, remove it
-    if (section.querySelector('.sliderbubble-up')) {
-      section.querySelector('.sliderbubble-up').remove();
-    }
+//     const mobileSlider = section.querySelector('.mobile-colors-slider');
+//     const desktopSlider = section.querySelector('.desktop-colors-slider');
 
-    if (window.innerWidth < 685) {
-      // Append to mobile slider if window width is less than 685px
-      mobileSlider.appendChild(output);
-    } else {
-      // Append to desktop slider otherwise
-      desktopSlider.appendChild(output);
-    }
-  });
-}
+//     // If the output element is already appended somewhere, remove it
+//     if (section.querySelector('.sliderbubble-up')) {
+//       section.querySelector('.sliderbubble-up').remove();
+//     }
+
+//     if (window.innerWidth < 685) {
+//       // Append to mobile slider if window width is less than 685px
+//       mobileSlider.appendChild(output);
+//     } else {
+//       // Append to desktop slider otherwise
+//       desktopSlider.appendChild(output);
+//     }
+//   });
+// }
 
 
 
@@ -364,10 +382,10 @@ function onLoad() {
   if (localStorage.getItem('pcm') == "true") togglePcMode(true);
 
   // Run once when the page loads
-  appendOutput();
+  // appendOutput();
 
   // And re-run when the window is resized
-  window.addEventListener('resize', appendOutput);
+  // window.addEventListener('resize', appendOutput);
 
   // var sls = d.querySelectorAll('input[type="range"]');
 
@@ -386,6 +404,18 @@ function onLoad() {
 
   closeSideNav();
 
+  // document.querySelectorAll('output').forEach(element => {
+  //   element.addEventListener("click", () => {
+  //     let inputElement = document.createElement('input');
+  //     inputElement.type = 'text';
+  //     inputElement.value = element.textContent;
+  //     inputElement.onchange = element.parentNode.querySelector("input[type='range']").onchange? element.parentNode.querySelector("input[type='range']").onchange : element.parentNode.parentNode.parentNode.querySelector("input[type='range']").onchange;
+  //     inputElement.addEventListener("mouseleave", ()=>{
+  //       inputElement.parentNode.replaceChild(element, inputElement);
+  //     })
+  //     element.parentNode.replaceChild(inputElement, element);
+  //   });
+  // });
   // toggleLiveview();
 
   // console.log(document.querySelectorAll('.mobile-colors-slider'));
@@ -815,20 +845,20 @@ function populateSegments(s) {
         <label class="input-label">Segment Name</label>
         <input type="text" class="ptxt stxt noslide" id="seg${i}t" autocomplete="off" maxlength=32 value="${inst.n ? inst.n : ""}" placeholder="Enter name..." onfocus="focusOn('name')" onblur="focusOff('name')"/>
 
-        <i class="icons e-icon pwr ${powered[i] ? "act" : ""}" id="seg${i}pwr" onclick="setSegPwr(${i})">&#xe08f;<span class="power-btn-text">Power</span></i>
+        <i class="icons e-icon pwr ${powered[i] ? "act" : ""}" id="seg${i}pwr" onclick="setSegPwr(${i})">&#xe08f;<span class="power-btn-text" style="color:inherit;">Power</span></i>
         
         <div class="il">
             <p class="hd segbri">Brightness</p>
 
           <div class="briiwrap">
             <div class="sliderwrap il sws">
-              <input id="seg${i}bri" class="noslide" onchange="setSegBri(${i})" max="254" min="1" type="range" value="${inst.bri}" oninput="updateBubble(event)"/>
+              <input id="seg${i}bri" class="noslide" onchange="setSegBri(${i})" max="255" min="1" type="range" value="${inst.bri}" oninput="updateBubble(this)"/>
               <div class="sliderdisplay"></div>
             </div>
           </div>
 
           <div style="display:flex;justify-content:center;">
-            <output class="sliderbubble-up"></output>
+          <input class="sliderbubble-up" type="number" onkeyup="setSegBri(setSegBri(${i}),this.value, 3);" min="1" max="255"></input>
           </div>
         </div>
 
@@ -902,8 +932,8 @@ function populateSegments(s) {
 
     // WLEDSR Custom Effects
     if (inst.fx == 187)
-      cn += `<button class="btn" onclick="toggleCEEditor('${inst.n ? inst.n : "default"}', ${i})">Custom Effect Editor</button><br>
-          </div>
+      cn += `<div style="display:flex;width:100%;justify-content:center;"><button class="btn" onclick="toggleCEEditor('${inst.n ? inst.n : "default"}', ${i})">Custom Effect Editor</button><br>
+          </div></div>
           </div><br>`;
     else
       cn += `</div>
@@ -930,8 +960,16 @@ function populateSegments(s) {
 }
 
 function populateEffects(effects) {
-  var html = `<div id="effectsearchbar"><input type="text" class="search" placeholder="Search" oninput="search(this)" />
-  <i class="icons search-icon">&#xe0a1;</i><i class="icons search-cancel-icon" onclick="cancelSearch(this)">&#xe38f;</i></div>`;
+  var html = `
+  <div id="effectsearchbar">
+    <input type="text" class="search" placeholder="Search" oninput="search(this)" />
+    <i class="icons search-icon">
+      &#xe0a1;
+    </i>
+    <i class="icons search-cancel-icon" onclick="cancelSearch(this)">
+      x
+    </i>
+  </div>`;
 
   effects.shift(); // remove solid
   for (let i = 0; i < effects.length; i++) {
@@ -986,7 +1024,7 @@ function populatePalettes(palettes) {
   });
 
   var html = `<div class="searchbar"><input type="text" class="search" placeholder="Search" oninput="search(this)" />
-<i class="icons search-icon">&#xe0a1;</i><i class="icons search-cancel-icon" onclick="cancelSearch(this)">&#xe38f;</i></div>`;
+<i class="icons search-icon">&#xe0a1;</i><i class="icons search-cancel-icon" onclick="cancelSearch(this)">x</i></div>`;
   for (let i = 0; i < palettes.length; i++) {
     html += generateListItemHtml(
       'palette',
@@ -1149,26 +1187,71 @@ function updateTrail(e) {
   e.parentNode.getElementsByClassName('sliderdisplay')[0].style.background = val;
 }
 
+function findSlider(e) {
+  let bubbles;
+
+  switch (e.id) {
+    case 'sliderK':
+      bubbles = document.querySelectorAll('#kwrap input[class="sliderbubble-up"]');
+      break;
+    case 'sliderV':
+      bubbles = document.querySelectorAll('#vwrap input[class="sliderbubble-up"]');
+      break;
+    case 'sliderW':
+      bubbles = document.querySelectorAll('#wwrap input[class="sliderbubble-up"]');
+      break;
+    case 'sliderA':
+      bubbles = document.querySelectorAll('#wbal input[class="sliderbubble-up"]');
+      break;
+    default:
+      bubbles = e.parentNode.parentNode.parentNode.classList.contains('il')? e.parentNode.parentNode.parentNode.querySelector('input[class="sliderbubble-up"]'): null;
+  }
+
+  return bubbles;
+}
+
 //rangetouch slider function
 function updateBubble(e) {
   // console.log("updateBubble", e.target, e);
   if (e == null) return;
-  let bubble = e.parentNode.getElementsByTagName('output')[0] ? e.parentNode.getElementsByTagName('output')[0] : e.parentNode.parentNode.parentNode.querySelector("output[class='sliderbubble-up']");
+  let bubble = e.parentNode.querySelector('input[class="sliderbubble"][type="number"]') ? e.parentNode.querySelector('input[class="sliderbubble"][type="number"]') : findSlider(e);
 
   let max = e.hasAttribute('max') ? e.attributes.max.value : 255;
+  // console.log("max is: ", max)
+
+  if (!bubble) return;
 
   if (max == 255) {
     if (bubble) {
-      bubble.innerHTML = e.value;
-      return;
+      if (bubble.length) {
+        bubble.forEach(bub => {
+          // console.log(bub);
+          bub.value = e.value;
+        })
+        return;
+      } else {
+        bubble.value = e.value;
+        return;
+      }
     }
   }
 
   let perc = e.value * 100 / max;
   perc = parseInt(perc);
+  // console.log("perc is", perc)
 
   if (bubble) {
-    bubble.innerHTML = perc + "%";
+    if (bubble.length) {
+      bubble.forEach(bub => {
+        bub.value = parseInt(perc);
+        // console.log("################bub");
+        // console.log(bub, perc);
+      })
+      return;
+    } else {
+      bubble.value = perc;
+      return;
+    }
   }
 }
 
@@ -2065,7 +2148,7 @@ function makeP(i, pl) {
           <input class="noslide" id="p${i}id" type="number" oninput="checkUsed(${i})" max=250 min=1 value=${(i > 0) ? i : getLowestUnusedP()} style="text-align:left;">
         </td>
         <td style="display: flex;width: 100%;justify-content:end;">
-          <button class="btn btn-i btn-p test-playlist-button" onclick="testPl(${i}, this)">
+          <button class="btn btn-i btn-p test-playlist-button" onclick="testPl(${i}, this)" >
           <span style="background-color: #FF1C1C;display:flex;flex-direction:row;justify-content:center;align-items:center;width:22px;height:22px;border-radius:50%;margin:5px 5px 0 0">
             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12" fill="none">
             <path d="M10 4.01795C11.3333 4.78775 11.3333 6.71225 10 7.48205L3.625 11.1627C2.29166 11.9325 0.624999 10.9702 0.624999 9.43061L0.624999 2.06939C0.624999 0.529787 2.29167 -0.432461 3.625 0.337339L10 4.01795Z" fill="black"/>
@@ -2344,8 +2427,8 @@ function setSegPwr(s) {
   requestJson(obj);
 }
 
-function setSegBri(s) {
-  var obj = { "seg": { "id": s, "bri": parseInt(d.getElementById(`seg${s}bri`).value) } };
+function setSegBri(s, val = 0, key = false) {
+  var obj = { "seg": { "id": s, "bri": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById(`seg${s}bri`).value) } };
   requestJson(obj);
 }
 
@@ -2392,24 +2475,24 @@ function setPalette(paletteId = null, effectPar) {
   requestJson(obj);
 }
 
-function setBri() {
-  var obj = { "bri": parseInt(d.getElementById('sliderBri').value) };
+function setBri(val = 0, key = false) {
+  var obj = { "bri": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderBri').value) };
   requestJson(obj);
 }
 
 //WLEDSR
-function setInputLevel() {
-  var obj = { "inputLevel": parseInt(d.getElementById('sliderInputLevel').value) };
+function setInputLevel(val = 0, key = false) {
+  var obj = { "inputLevel": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderInputLevel').value) };
   requestJson(obj);
 }
 
-function setSpeed() {
-  var obj = { "seg": { "sx": parseInt(d.getElementById('sliderSpeed').value) } };
+function setSpeed(val = 0, key = false) {
+  var obj = { "seg": { "sx": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderSpeed').value) } };
   requestJson(obj, false);
 }
 
-function setIntensity() {
-  var obj = { "seg": { "ix": parseInt(d.getElementById('sliderIntensity').value) } };
+function setIntensity(val = 0, key = false) {
+  var obj = { "seg": { "ix": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderIntensity').value) } };
   requestJson(obj, false);
 }
 
@@ -2418,18 +2501,18 @@ function setLor(i) {
   requestJson(obj);
 }
 
-function setCustom1() {
-  var obj = { "seg": { "c1x": parseInt(d.getElementById('sliderCustom1').value) } };
+function setCustom1(val = 0, key = false) {
+  var obj = { "seg": { "c1x": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderCustom1').value) } };
   requestJson(obj);
 }
 
-function setCustom2() {
-  var obj = { "seg": { "c2x": parseInt(d.getElementById('sliderCustom2').value) } };
+function setCustom2(val = 0, key = false) {
+  var obj = { "seg": { "c2x": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderCustom2').value) } };
   requestJson(obj);
 }
 
-function setCustom3() {
-  var obj = { "seg": { "c3x": parseInt(d.getElementById('sliderCustom3').value) } };
+function setCustom3(val = 0, key = false) {
+  var obj = { "seg": { "c3x": key ? (isEmpty(val) ? 0 : val) : parseInt(d.getElementById('sliderCustom3').value) } };
   requestJson(obj);
 }
 
@@ -2531,7 +2614,8 @@ function populateCEEditor(name, segID) {
 
   fetchAndExecute(name + ".wled", function (text) {
     var cn = `<table class="infot"><tr><td>
-            Custom Effects Editor<br>
+            <p class="section-heading" style="text-align: center">
+            Custom Effects Editor</p><br>
             <i>${name}.wled</i><br>
             <textarea class="ceTextarea" id="ceProgramArea">${text}</textarea>
             </td></tr></table>
@@ -2646,12 +2730,19 @@ program ${name}
 function testPl(i, bt) {
   if (bt.dataset.test == 1) {
     bt.dataset.test = 0;
-    bt.innerHTML = "<i class='icons btn-icon'>&#xe139;</i>Test";
+    bt.innerHTML = `<span style="background-color: #FF1C1C;display:flex;flex-direction:row;justify-content:center;align-items:center;width:22px;height:22px;border-radius:50%;margin:5px 5px 0 0">
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12" fill="none">
+    <path d="M10 4.01795C11.3333 4.78775 11.3333 6.71225 10 7.48205L3.625 11.1627C2.29166 11.9325 0.624999 10.9702 0.624999 9.43061L0.624999 2.06939C0.624999 0.529787 2.29167 -0.432461 3.625 0.337339L10 4.01795Z" fill="black"/>
+    </svg>
+  </span>
+  Test`;
+    bt.classList.remove('hovered');
     stopPl();
     return;
   }
   bt.dataset.test = 1;
   bt.innerHTML = "<i class='icons btn-icon'>&#xe38f;</i>Stop";
+  bt.classList.add('hovered');
   var obj = {};
   obj.playlist = plJson[i];
   obj.on = true;
@@ -2913,7 +3004,7 @@ function getPalettesData(page, callback) {
 
 function search(searchField) {
   var searchText = searchField.value.toUpperCase();
-  searchField.parentElement.getElementsByClassName('search-cancel-icon')[0].style.display = (searchText.length < 1) ? "none" : "none";
+  searchField.parentElement.getElementsByClassName('search-cancel-icon')[0].style.display = (searchText.length < 1) ? "none" : "block";
   var elements = searchField.parentElement.parentElement.querySelectorAll('.lstI');
   for (i = 0; i < elements.length; i++) {
     var item = elements[i];
@@ -2931,6 +3022,21 @@ function cancelSearch(ic) {
   searchField.value = "";
   search(searchField);
   searchField.focus();
+  document.querySelectorAll('#effects-filter .filter-type').forEach(filtertype => {
+    filtertype.style.backgroundColor = "black";
+    filtertype.querySelectorAll('svg path').forEach(element => {
+      element.setAttribute('stroke', 'white');
+    });
+    filtertype.querySelectorAll('svg rect').forEach(element => {
+      element.setAttribute('stroke', 'white');
+    });
+    filtertype.querySelector("p").style.color = "white";
+  });
+
+  document.getElementById("frequency").querySelectorAll('svg path').forEach(element => {
+    element.setAttribute('fill', 'white');
+    element.setAttribute('stroke', 'none');
+  });
 }
 
 // make sure "dur" and "transition" are arrays with at least the length of "ps"
